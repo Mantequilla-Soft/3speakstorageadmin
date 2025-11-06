@@ -186,54 +186,63 @@ export class DatabaseService {
   }
 
   // Helper method to get S3 paths for videos (permlink-based + original files)
-  getS3Paths(video: Video): string[] {
-    const paths: string[] = [];
+  getS3Paths(video: Video): { files: string[]; prefixes: string[] } {
+    const files: string[] = [];
+    const prefixes: string[] = [];
     
     // For newer videos, use permlink-based structure (processed/encoded videos)
     if (video.permlink) {
-      paths.push(
+      // Individual files (m3u8 playlists)
+      files.push(
         `${video.permlink}/1080p.m3u8`,
         `${video.permlink}/720p.m3u8`,
         `${video.permlink}/480p.m3u8`,
         `${video.permlink}/360p.m3u8`,
-        `${video.permlink}/default.m3u8`,
-        `${video.permlink}/1080p/`, // HLS segments folder
+        `${video.permlink}/default.m3u8`
+      );
+      
+      // Prefixes for HLS segment folders (will delete all .ts files inside)
+      prefixes.push(
+        `${video.permlink}/1080p/`, // Contains 001.ts, 002.ts, etc.
         `${video.permlink}/720p/`,
         `${video.permlink}/480p/`,
         `${video.permlink}/360p/`,
         `${video.permlink}/thumbnails/`,
-        video.permlink // Base folder
+        `${video.permlink}/` // Base folder (catch any other files)
       );
     }
     
     // Add the processed video filename if it exists and is S3
     if (video.filename && !video.filename.startsWith('ipfs://')) {
-      paths.push(video.filename);
+      files.push(video.filename);
     }
     
     // CRITICAL: Add the original source video file
     if (video.originalFilename && !video.originalFilename.startsWith('ipfs://')) {
-      paths.push(video.originalFilename);
+      files.push(video.originalFilename);
       
       // Also check for common original video patterns in S3
       // Some systems might store originals with prefixes
       const originalBasename = video.originalFilename.split('/').pop();
       if (originalBasename) {
-        paths.push(`originals/${originalBasename}`);
-        paths.push(`uploads/${originalBasename}`);
-        paths.push(`raw/${originalBasename}`);
-        paths.push(`source/${originalBasename}`);
+        files.push(`originals/${originalBasename}`);
+        files.push(`uploads/${originalBasename}`);
+        files.push(`raw/${originalBasename}`);
+        files.push(`source/${originalBasename}`);
       }
     }
     
-    // Remove duplicates and empty strings
-    return [...new Set(paths.filter(path => path && path.trim() !== ''))];
+    // Remove duplicates and return structured result
+    return {
+      files: [...new Set(files.filter(path => path && path.trim() !== ''))],
+      prefixes: [...new Set(prefixes.filter(path => path && path.trim() !== ''))]
+    };
   }
 
-  // Legacy method for backward compatibility
+  // Legacy method for backward compatibility  
   getS3Filename(video: Video): string | null {
     const paths = this.getS3Paths(video);
-    return paths.length > 0 ? paths[0] : null;
+    return paths.files.length > 0 ? paths.files[0] : null;
   }
 
   // Helper method to get IPFS hash from filename

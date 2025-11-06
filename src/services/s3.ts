@@ -80,6 +80,68 @@ export class S3Service {
   }
 
   /**
+   * List all objects with a specific prefix (for HLS folders)
+   */
+  async listObjectsWithPrefix(prefix: string): Promise<string[]> {
+    try {
+      const command = new ListObjectsV2Command({
+        Bucket: this.bucketName,
+        Prefix: prefix,
+        MaxKeys: 1000
+      });
+
+      const response = await this.s3Client.send(command);
+      const keys = response.Contents?.map(obj => obj.Key || '') || [];
+      
+      logger.info(`Found ${keys.length} objects with prefix: ${prefix}`);
+      return keys.filter(key => key !== ''); // Remove any empty keys
+    } catch (error: any) {
+      logger.error(`Failed to list objects with prefix ${prefix}`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Delete all objects with a specific prefix (for HLS folders and segments)
+   */
+  async deleteObjectsWithPrefix(prefix: string): Promise<{ deleted: number; errors: number }> {
+    try {
+      const objectKeys = await this.listObjectsWithPrefix(prefix);
+      
+      if (objectKeys.length === 0) {
+        logger.info(`No objects found with prefix: ${prefix}`);
+        return { deleted: 0, errors: 0 };
+      }
+
+      logger.info(`Deleting ${objectKeys.length} objects with prefix: ${prefix}`);
+      
+      let deleted = 0;
+      let errors = 0;
+
+      // Delete in batches to avoid overwhelming S3
+      const batchSize = 10;
+      for (let i = 0; i < objectKeys.length; i += batchSize) {
+        const batch = objectKeys.slice(i, i + batchSize);
+        
+        const results = await Promise.all(
+          batch.map(key => this.deleteObject(key))
+        );
+        
+        results.forEach(success => {
+          if (success) deleted++;
+          else errors++;
+        });
+      }
+
+      logger.info(`Prefix ${prefix}: ${deleted} deleted, ${errors} errors`);
+      return { deleted, errors };
+    } catch (error: any) {
+      logger.error(`Failed to delete objects with prefix ${prefix}`, error);
+      return { deleted: 0, errors: 1 };
+    }
+  }
+
+  /**
    * Get object metadata (size, last modified, etc.)
    */
   async getObjectInfo(key: string): Promise<{

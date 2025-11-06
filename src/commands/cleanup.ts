@@ -124,10 +124,12 @@ export async function cleanupCommand(options: CleanupOptions): Promise<void> {
           }
         } else if (storageType === 's3') {
           const s3Paths = db.getS3Paths(video);
-          if (s3Paths.length > 0) {
-            analysis.s3Keys.push(...s3Paths);
-            logger.info(`  S3 Paths (${s3Paths.length}):`);
-            s3Paths.forEach(path => logger.info(`    ${path}`));
+          const totalPaths = s3Paths.files.length + s3Paths.prefixes.length;
+          if (totalPaths > 0) {
+            analysis.s3Keys.push(...s3Paths.files, ...s3Paths.prefixes);
+            logger.info(`  S3 Files (${s3Paths.files.length}) + Prefixes (${s3Paths.prefixes.length}):`);
+            s3Paths.files.forEach(path => logger.info(`    File: ${path}`));
+            s3Paths.prefixes.forEach(path => logger.info(`    Folder: ${path}*`));
           }
         }
         
@@ -191,25 +193,33 @@ export async function cleanupCommand(options: CleanupOptions): Promise<void> {
             }
           }
           
-          // Clean up S3 (permlink-based structure)
+          // Clean up S3 (permlink-based structure with HLS segments)
           else if (storageType === 's3') {
             const s3Paths = db.getS3Paths(video);
             let deletedCount = 0;
-            let totalPaths = 0;
+            let totalAttempts = 0;
             
-            for (const s3Path of s3Paths) {
-              totalPaths++;
-              const success = await s3Service.deleteObject(s3Path);
+            // Delete individual files (m3u8 playlists, source files)
+            for (const filePath of s3Paths.files) {
+              totalAttempts++;
+              const success = await s3Service.deleteObject(filePath);
               if (success) {
                 deletedCount++;
               }
             }
             
+            // Delete all files in HLS segment folders using prefix deletion
+            for (const prefix of s3Paths.prefixes) {
+              const result = await s3Service.deleteObjectsWithPrefix(prefix);
+              deletedCount += result.deleted;
+              totalAttempts += result.deleted + result.errors;
+            }
+            
             if (deletedCount > 0) {
               results.s3Deleted += deletedCount;
-              logger.info(`Deleted ${deletedCount}/${totalPaths} S3 objects for video ${video._id} (${video.permlink})`);
+              logger.info(`Deleted ${deletedCount} S3 objects for video ${video._id} (${video.permlink || 'no-permlink'})`);
             } else {
-              logger.info(`No S3 objects found for video ${video._id} (${video.permlink}) - may already be cleaned`);
+              logger.info(`No S3 objects found for video ${video._id} (${video.permlink || 'no-permlink'}) - may already be cleaned`);
             }
           }
 
