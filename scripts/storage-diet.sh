@@ -194,10 +194,38 @@ echo ""
 # Step 6: Execute storage diet
 START_TIME=$(date)
 echo "🧹 Executing storage diet optimization..."
+echo ""
 
-# Capture the optimization output to extract storage freed info
-DIET_OUTPUT=$(npm start -- storage-diet --older-than-months $AGE_MONTHS --view-threshold $VIEW_THRESHOLD --batch-size $BATCH_SIZE --no-confirm 2>&1)
+# Run storage diet in background and monitor progress
+npm start -- storage-diet --older-than-months $AGE_MONTHS --view-threshold $VIEW_THRESHOLD --batch-size $BATCH_SIZE --no-confirm > /tmp/3speak_diet_$$.log 2>&1 &
+DIET_PID=$!
+
+# Show progress indicator while optimization runs
+SPINNER=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+SPIN_INDEX=0
+SECONDS_ELAPSED=0
+
+echo -n "Optimizing videos "
+while kill -0 $DIET_PID 2>/dev/null; do
+    printf "\r${SPINNER[$SPIN_INDEX]} Optimizing videos (keeping only 480p)... %02d:%02d elapsed" $((SECONDS_ELAPSED/60)) $((SECONDS_ELAPSED%60))
+    SPIN_INDEX=$(( (SPIN_INDEX + 1) % 10 ))
+    sleep 1
+    SECONDS_ELAPSED=$((SECONDS_ELAPSED + 1))
+done
+
+# Wait for process to complete and get exit code
+wait $DIET_PID
 DIET_EXIT_CODE=$?
+
+# Clear the spinner line
+printf "\r\033[K"
+
+# Display the output
+DIET_OUTPUT=$(cat /tmp/3speak_diet_$$.log)
+echo "$DIET_OUTPUT"
+
+# Clean up temp file
+rm -f /tmp/3speak_diet_$$.log
 
 # Display the output
 echo "$DIET_OUTPUT"

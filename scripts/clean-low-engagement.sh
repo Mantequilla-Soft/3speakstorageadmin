@@ -209,9 +209,41 @@ echo ""
 
 # Step 7: Execute cleanup
 START_TIME=$(date)
-npm start -- cleanup --age $AGE_DAYS --max-views $VIEW_THRESHOLD --batch-size $BATCH_SIZE --no-confirm
+echo "🧹 Executing cleanup..."
+echo ""
 
-if [ $? -eq 0 ]; then
+# Run cleanup in background and monitor progress
+npm start -- cleanup --age $AGE_DAYS --max-views $VIEW_THRESHOLD --batch-size $BATCH_SIZE --no-confirm > /tmp/3speak_loweng_$$.log 2>&1 &
+CLEANUP_PID=$!
+
+# Show progress indicator while cleanup runs
+SPINNER=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+SPIN_INDEX=0
+SECONDS_ELAPSED=0
+
+echo -n "Removing low-engagement videos "
+while kill -0 $CLEANUP_PID 2>/dev/null; do
+    printf "\r${SPINNER[$SPIN_INDEX]} Removing low-engagement videos... %02d:%02d elapsed" $((SECONDS_ELAPSED/60)) $((SECONDS_ELAPSED%60))
+    SPIN_INDEX=$(( (SPIN_INDEX + 1) % 10 ))
+    sleep 1
+    SECONDS_ELAPSED=$((SECONDS_ELAPSED + 1))
+done
+
+# Wait for process to complete and get exit code
+wait $CLEANUP_PID
+CLEANUP_EXIT_CODE=$?
+
+# Clear the spinner line
+printf "\r\033[K"
+
+# Display the output
+CLEANUP_OUTPUT=$(cat /tmp/3speak_loweng_$$.log)
+echo "$CLEANUP_OUTPUT"
+
+# Clean up temp file
+rm -f /tmp/3speak_loweng_$$.log
+
+if [ $CLEANUP_EXIT_CODE -eq 0 ]; then
     echo ""
     echo "✅ Low engagement video cleanup completed!"
     echo ""

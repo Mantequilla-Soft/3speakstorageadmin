@@ -123,13 +123,38 @@ echo ""
 # Step 6: Execute cleanup
 START_TIME=$(date)
 echo "🧹 Executing cleanup..."
+echo ""
 
-# Capture the cleanup output to extract storage freed info
-CLEANUP_OUTPUT=$(npm start -- cleanup --status deleted --batch-size $BATCH_SIZE --no-confirm 2>&1)
+# Run cleanup in background and monitor progress
+npm start -- cleanup --status deleted --batch-size $BATCH_SIZE --no-confirm > /tmp/3speak_cleanup_$$.log 2>&1 &
+CLEANUP_PID=$!
+
+# Show progress indicator while cleanup runs
+SPINNER=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+SPIN_INDEX=0
+SECONDS_ELAPSED=0
+
+echo -n "Processing videos "
+while kill -0 $CLEANUP_PID 2>/dev/null; do
+    printf "\r${SPINNER[$SPIN_INDEX]} Processing videos... %02d:%02d elapsed" $((SECONDS_ELAPSED/60)) $((SECONDS_ELAPSED%60))
+    SPIN_INDEX=$(( (SPIN_INDEX + 1) % 10 ))
+    sleep 1
+    SECONDS_ELAPSED=$((SECONDS_ELAPSED + 1))
+done
+
+# Wait for process to complete and get exit code
+wait $CLEANUP_PID
 CLEANUP_EXIT_CODE=$?
 
+# Clear the spinner line
+printf "\r\033[K"
+
 # Display the output
+CLEANUP_OUTPUT=$(cat /tmp/3speak_cleanup_$$.log)
 echo "$CLEANUP_OUTPUT"
+
+# Clean up temp file
+rm -f /tmp/3speak_cleanup_$$.log
 
 if [ $CLEANUP_EXIT_CODE -eq 0 ]; then
     echo ""
