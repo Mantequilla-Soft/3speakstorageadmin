@@ -137,24 +137,37 @@ echo "   Processing $BATCH_SIZE videos at a time"
 echo "   You can press Ctrl+C to stop at any time"
 echo ""
 
-# Step 6: Execute cleanup
+# Step 5: Execute cleanup
 START_TIME=$(date)
-npm start -- cleanup --banned-users --batch-size $BATCH_SIZE --no-confirm
+echo "🧹 Executing cleanup..."
 
-if [ $? -eq 0 ]; then
+# Capture the cleanup output to extract storage freed info
+CLEANUP_OUTPUT=$(npm start -- cleanup --banned-users --batch-size $BATCH_SIZE --no-confirm 2>&1)
+CLEANUP_EXIT_CODE=$?
+
+# Display the output
+echo "$CLEANUP_OUTPUT"
+
+if [ $CLEANUP_EXIT_CODE -eq 0 ]; then
     echo ""
-    echo "✅ Banned content removal completed!"
+    echo "✅ Cleanup completed successfully!"
+    
+    # Extract and highlight storage freed information
+    STORAGE_FREED=$(echo "$CLEANUP_OUTPUT" | grep "💾 STORAGE FREED:" || echo "Storage information not available")
+    if [ "$STORAGE_FREED" != "Storage information not available" ]; then
+        echo ""
+        echo "🎉 RESULT: $STORAGE_FREED"
+    fi
+    
     echo ""
     echo "📊 Updated statistics:"
-    npm start -- stats 2>/dev/null | grep -E "(Banned Users:|Total Videos:|Total Size:)"
+    npm start -- stats 2>/dev/null | grep -E "(Banned Users:|Total Videos:|Total Size:|Videos Cleaned Up:)"
     echo ""
     echo "🕐 Started: $START_TIME"
     echo "🕐 Finished: $(date)"
 else
     echo ""
     echo "❌ Cleanup encountered some issues. Check the output above."
-    echo "   The process may have been interrupted or encountered errors."
-    echo "   You can safely run this script again - it won't re-process already cleaned videos."
 fi
 
 echo ""

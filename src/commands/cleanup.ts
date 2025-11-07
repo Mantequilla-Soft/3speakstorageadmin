@@ -168,6 +168,7 @@ export async function cleanupCommand(options: CleanupOptions): Promise<void> {
       ipfsUnpinned: 0,
       s3Deleted: 0,
       dbUpdated: 0,
+      totalStorageFreed: 0,
       errors: [] as string[]
     };
 
@@ -240,6 +241,9 @@ export async function cleanupCommand(options: CleanupOptions): Promise<void> {
           });
           results.dbUpdated++;
           results.processed++;
+          
+          // Add to total storage freed
+          results.totalStorageFreed += video.size || 0;
 
         } catch (error: any) {
           logger.error(`Error processing video ${video._id}`, error);
@@ -255,11 +259,15 @@ export async function cleanupCommand(options: CleanupOptions): Promise<void> {
     }
 
     // Final results
+    const storageFreedGB = (results.totalStorageFreed / (1024 * 1024 * 1024)).toFixed(2);
+    const storageFreedTB = (results.totalStorageFreed / (1024 * 1024 * 1024 * 1024)).toFixed(3);
+    
     logger.info('=== CLEANUP COMPLETED ===');
     logger.info(`Videos processed: ${results.processed}`);
     logger.info(`IPFS hashes unpinned: ${results.ipfsUnpinned}`);
     logger.info(`S3 objects deleted: ${results.s3Deleted}`);
     logger.info(`Database records updated: ${results.dbUpdated}`);
+    logger.info(`💾 STORAGE FREED: ${storageFreedGB} GB (${storageFreedTB} TB)`);
     logger.info(`Errors: ${results.errors.length}`);
     
     if (results.errors.length > 0) {
