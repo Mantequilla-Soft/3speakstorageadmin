@@ -266,7 +266,7 @@ export class DatabaseService {
         `${video.permlink}/` // Base folder (catch any other files)
       );
     }
-    
+
     // Add the processed video filename if it exists and is S3
     if (video.filename && !video.filename.startsWith('ipfs://')) {
       files.push(video.filename);
@@ -283,15 +283,58 @@ export class DatabaseService {
         files.push(`originals/${originalBasename}`);
         files.push(`uploads/${originalBasename}`);
         files.push(`raw/${originalBasename}`);
-        files.push(`source/${originalBasename}`);
       }
     }
+
+    return { files, prefixes };
+  }
+
+  // Helper method to get S3 paths for slim operations (excludes 480p content)
+  getS3PathsForSlim(video: Video): { files: string[]; prefixes: string[] } {
+    const files: string[] = [];
+    const prefixes: string[] = [];
     
-    // Remove duplicates and return structured result
-    return {
-      files: [...new Set(files.filter(path => path && path.trim() !== ''))],
-      prefixes: [...new Set(prefixes.filter(path => path && path.trim() !== ''))]
-    };
+    // For newer videos, use permlink-based structure (processed/encoded videos)
+    if (video.permlink) {
+      // Individual files to delete (m3u8 playlists) - EXCLUDE 480p.m3u8
+      files.push(
+        `${video.permlink}/1080p.m3u8`,
+        `${video.permlink}/720p.m3u8`,
+        `${video.permlink}/360p.m3u8`,
+        `${video.permlink}/default.m3u8`
+        // EXPLICITLY EXCLUDE: `${video.permlink}/480p.m3u8`
+      );
+      
+      // Prefixes for HLS segment folders to delete - EXCLUDE 480p/ and thumbnails/
+      prefixes.push(
+        `${video.permlink}/1080p/`,
+        `${video.permlink}/720p/`,
+        `${video.permlink}/360p/`
+        // EXPLICITLY EXCLUDE: `${video.permlink}/480p/`
+        // EXPLICITLY EXCLUDE: `${video.permlink}/thumbnails/`
+        // EXPLICITLY EXCLUDE: `${video.permlink}/` (base folder)
+      );
+    }
+
+    // Add the original source video file (always delete source)
+    if (video.originalFilename && !video.originalFilename.startsWith('ipfs://')) {
+      files.push(video.originalFilename);
+      
+      // Also check for common original video patterns in S3
+      const originalBasename = video.originalFilename.split('/').pop();
+      if (originalBasename) {
+        files.push(`originals/${originalBasename}`);
+        files.push(`uploads/${originalBasename}`);
+        files.push(`raw/${originalBasename}`);
+      }
+    }
+
+    // Add the processed video filename if NOT 480p
+    if (video.filename && !video.filename.startsWith('ipfs://') && !video.filename.includes('480p')) {
+      files.push(video.filename);
+    }
+
+    return { files, prefixes };
   }
 
   // Legacy method for backward compatibility  

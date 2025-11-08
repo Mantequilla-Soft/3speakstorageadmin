@@ -173,23 +173,12 @@ export async function slimUserCommand(options: SlimUserOptions): Promise<void> {
           const label = (video.title || video.permlink || video._id).substring(0, 30);
           let videoStorageFreed = 0;
 
-          const s3Paths = db.getS3Paths(video);
+          // Use the specialized method that excludes 480p content
+          const s3Paths = db.getS3PathsForSlim(video);
           
-          // Delete high-resolution files (keep only 480p)
-          const filesToDelete = s3Paths.files.filter(path => 
-            path.includes('/1080p.m3u8') || 
-            path.includes('/720p.m3u8') || 
-            path.includes('/360p.m3u8') ||
-            path.includes('/default.m3u8') || // Often points to highest res
-            path === video.originalFilename || // Delete source file
-            (video.filename && path === video.filename && !path.includes('480p')) // Delete original processed file if not 480p
-          );
-
-          const prefixesToDelete = s3Paths.prefixes.filter(prefix =>
-            prefix.includes('/1080p/') ||
-            prefix.includes('/720p/') ||
-            prefix.includes('/360p/')
-          );
+          // All files and prefixes returned are safe to delete (480p excluded)
+          const filesToDelete = s3Paths.files;
+          const prefixesToDelete = s3Paths.prefixes;
 
           // Delete individual files
           for (const filePath of filesToDelete) {
