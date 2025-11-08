@@ -49,7 +49,7 @@ export async function trimFatCommand(options: TrimFatOptions): Promise<void> {
   const db = new DatabaseService();
   const s3Service = new S3Service();
   const ipfsService = new IpfsService();
-  const isDryRun = options.dryRun !== false; // Default to dry run for safety
+  const isDryRun = options.dryRun === true; // Only dry run when explicitly specified
 
   try {
     await db.connect();
