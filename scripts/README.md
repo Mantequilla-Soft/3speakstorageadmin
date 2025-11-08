@@ -80,49 +80,84 @@ These scripts make storage cleanup super simple and safe. No need to remember co
    - Targets content unlikely to be missed
    - **Risk Level:** Medium - Reviews criteria before proceeding
 
-### 🪣 `s3-diet.sh` - S3 Storage Optimizer (Rare/New Videos Only)
-**What it does:** Optimizes S3 storage by keeping only 480p for low-engagement S3 videos
-**Safety:** Low risk (S3 videos remain watchable in 480p)
-**Reality Check:** Platform stopped using S3 4 years ago - limited savings expected
-**Storage Impact:** 60-80% reduction per S3 video (but few S3 videos exist)
+### 🪣 `s3-diet.sh` - S3 Storage Optimizer (S3 Videos Only) 🆕
+**What it does:** Optimizes S3 storage by keeping only 480p, removes higher resolutions
+**Storage Type:** ✅ **S3 videos only** - selective file deletion possible
+**Safety:** Low risk (videos remain watchable in 480p)
+**Reality Check:** Platform stopped using S3 4 years ago - limited savings expected (~1,000 S3 videos)
+**Storage Impact:** 60-80% reduction per S3 video (selective resolution deletion)
 **When to use:** If you have newer S3 uploads to optimize
 
 ```bash
 ./scripts/s3-diet.sh
 ```
 
-### 🗂️ `ipfs-diet.sh` - IPFS Storage Optimizer (THE BIG ONE) 🆕
-**What it does:** Unpins low-engagement IPFS videos to free storage space
-**Safety:** ⚠️ HIGH IMPACT - Videos become inaccessible after unpinning
-**Reality Check:** This is where the major storage savings happen (old IPFS videos)
-**Storage Impact:** 100% freed per unpinned video
+### 🗂️ `ipfs-diet.sh` - IPFS Storage Optimizer (IPFS Videos Only - THE BIG ONE) 🆕
+**What it does:** Unpins low-engagement IPFS videos to completely free storage space
+**Storage Type:** ✅ **IPFS videos only** - all-or-nothing unpinning (no partial deletion possible)
+**Safety:** ⚠️ HIGH IMPACT - Videos become completely inaccessible after unpinning
+**Reality Check:** This is where the major storage savings happen (~130K IPFS videos)
+**Storage Impact:** 100% freed per unpinned video (complete removal from IPFS node)
+**Technical Note:** IPFS doesn't support partial deletion - you can only pin (accessible) or unpin (inaccessible)
 **When to use:** When you need significant storage savings and can sacrifice old, low-engagement content
 
 ```bash
 ./scripts/ipfs-diet.sh
 ```
 
-### 🥗 `slim-user.sh` - Targeted User Storage Diet (NEW)
-**What it does:** User-focused storage optimization - like storage-diet but for specific accounts
-**Safety:** Medium (targets only old videos from specific user)
-**Features:** Cost savings calculation, age-based targeting, keeps videos watchable
-**Space saved:** ~70% reduction per optimized video
-**When to use:** Optimize specific heavy users, reduce storage costs for inactive creators
+### 🥗 `slim-user.sh` - Targeted User Storage Diet (S3 Videos Only) 🆕
+**What it does:** User-focused storage optimization for specific accounts
+**Storage Type:** ✅ **S3 videos only** - IPFS videos cannot be "slimmed" (all-or-nothing)
+**Safety:** Medium (targets only old S3 videos from specific user)
+**Features:** Cost savings calculation, age-based targeting, keeps videos watchable in 480p
+**Space saved:** ~70% reduction per optimized S3 video
+**Limitation:** Cannot optimize IPFS videos (use ipfs-diet.sh to unpin IPFS videos instead)
+**When to use:** Optimize specific users with S3 content, reduce storage costs for inactive creators
 
 ```bash
 ./scripts/slim-user.sh
 ```
 
-### ☢️ `nuke-account.sh` - Nuclear Account Deletion (EXTREME)
-**What it does:** Erases every trace of a specific account (S3 files, IPFS hashes, database records)
-**Safety:** ⚠️ EXTREME - irreversible, use only with absolute certainty
+### ☢️ `nuke-account.sh` - Nuclear Account Deletion (Both Storage Types - EXTREME)
+**What it does:** Erases every trace of a specific account from all storage systems
+**Storage Type:** ✅ **Both S3 and IPFS** - intelligently detects and applies appropriate destruction method
+**Operations:** S3 files deleted, IPFS hashes unpinned, database records removed
+**Safety:** ⚠️ EXTREME - completely irreversible, use only with absolute certainty
 **When to use:** Legal takedowns, DMCA requests, or malicious accounts that must be fully purged
 
 ```bash
 ./scripts/nuke-account.sh
 ```
 
-## 🛡️ Safety Features
+## �️ Storage Type Understanding
+
+**📊 Current Video Distribution:**
+- **S3 Videos:** ~1,000 videos (newer uploads, before platform switched to IPFS)
+- **IPFS Videos:** ~130,000 videos (majority of platform content)  
+- **Unknown/Failed:** ~200,000+ processing tokens/failed uploads
+
+**🔧 Storage Type Operations:**
+
+### S3 Videos (Selective Operations Possible):
+- **✅ Can be "slimmed":** Delete high-resolution files, keep 480p → videos remain watchable
+- **✅ Can be deleted:** Remove all files → videos become inaccessible
+- **Tools:** `s3-diet.sh` (slim), `slim-user.sh` (slim S3 only), cleanup commands (delete)
+
+### IPFS Videos (All-or-Nothing Operations):
+- **❌ Cannot be "slimmed":** IPFS is atomic - you cannot delete "part" of a video
+- **✅ Can be unpinned:** Remove from IPFS node → videos become completely inaccessible  
+- **Technical:** IPFS videos exist as complete content-addressed hashes, no partial states
+- **Tools:** `ipfs-diet.sh` (unpin), cleanup commands (unpin)
+
+### Universal Operations (Both Types):
+- **✅ Complete removal:** `nuke-account.sh`, `cleanup.ts` commands
+- **Logic:** Detects storage type automatically and applies appropriate method:
+  - S3: Deletes all files and HLS segments
+  - IPFS: Unpins content hash from node
+
+**💡 Key Insight:** Major storage savings come from IPFS unpinning (~130K videos), not S3 optimization (~1K videos)
+
+## �🛡️ Safety Features
 
 ✅ **Every script includes:**
 - Automatic project building
@@ -137,6 +172,7 @@ These scripts make storage cleanup super simple and safe. No need to remember co
 - Conservative batch sizes
 - Safe targeting (no accidentally deleting published content)
 - Clear warnings for destructive operations
+- Storage type detection and appropriate operation selection
 
 ## 📊 Recommended Usage Order
 
@@ -171,13 +207,16 @@ These scripts make storage cleanup super simple and safe. No need to remember co
 # Emergency only: Remove low-engagement content
 ./scripts/clean-low-engagement.sh
 
-# Major storage optimization: Unpin old IPFS content (makes videos inaccessible)
+# 🚀 MAJOR storage optimization: Unpin old IPFS content (~130K videos - THE BIG WINS)
 ./scripts/ipfs-diet.sh
 
-# Minor optimization: Optimize newer S3 videos to 480p (keeps videos watchable)
+# 🔧 Minor optimization: Optimize S3 videos to 480p (~1K videos - limited impact)
 ./scripts/s3-diet.sh
 
-# Nuclear option: Completely remove a hostile account
+# 🎯 User-specific optimization: Target heavy S3 users (cost savings calculations)
+./scripts/slim-user.sh
+
+# ☢️ Nuclear option: Completely remove account (both S3 and IPFS)
 ./scripts/nuke-account.sh
 ```
 
