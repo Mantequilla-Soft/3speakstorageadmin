@@ -183,6 +183,49 @@ export class DatabaseService {
     logger.info(`Marked video ${videoId} as cleaned up (${deleteType}): ${cleanupInfo.cleanupReason}`);
   }
 
+  async updateVideoOptimizationFlag(videoId: string, optimizationInfo: {
+    optimizedDate: Date;
+    optimizationType: string;
+    optimizedBy: string;
+    storageReduction: number;
+  }): Promise<void> {
+    const videos = this.getVideosCollection();
+    
+    await videos.updateOne(
+      { _id: videoId },
+      { 
+        $set: { 
+          // DO NOT change status - video remains published
+          updatedAt: new Date(),
+          optimizedStorage: true,
+          optimizedDate: optimizationInfo.optimizedDate,
+          optimizationType: optimizationInfo.optimizationType,
+          optimizedBy: optimizationInfo.optimizedBy,
+          storageReduction: optimizationInfo.storageReduction
+        }
+      }
+    );
+    
+    logger.info(`Marked video ${videoId} as storage-optimized: ${optimizationInfo.optimizedBy} (saved ${(optimizationInfo.storageReduction / (1024**2)).toFixed(2)} MB)`);
+  }
+
+  /**
+   * Find a video by its permlink and optionally owner
+   */
+  async findVideoByPermlink(permlink: string, owner?: string): Promise<Video | null> {
+    const videos = this.getVideosCollection();
+    
+    const query: any = { permlink: permlink };
+    
+    // If owner is specified, add it to the query for more precise matching
+    if (owner) {
+      query.owner = owner;
+    }
+    
+    const video = await videos.findOne(query);
+    return video;
+  }
+
   async getVideoStats(): Promise<any> {
     const videos = this.getVideosCollection();
     return await videos.aggregate([
@@ -289,34 +332,21 @@ export class DatabaseService {
     return { files, prefixes };
   }
 
-  // Helper method to get S3 paths for slim operations (excludes 480p content)
-  getS3PathsForSlim(video: Video): { files: string[]; prefixes: string[] } {
+  // Helper method to get S3 paths for slim operations - delete everything except the resolution to keep
+  getS3PathsForSlim(video: Video, resolutionsToDelete: string[]): { files: string[]; prefixes: string[] } {
     const files: string[] = [];
     const prefixes: string[] = [];
     
     // For newer videos, use permlink-based structure (processed/encoded videos)
     if (video.permlink) {
-      // Individual files to delete (m3u8 playlists) - EXCLUDE 480p.m3u8
-      files.push(
-        `${video.permlink}/1080p.m3u8`,
-        `${video.permlink}/720p.m3u8`,
-        `${video.permlink}/360p.m3u8`,
-        `${video.permlink}/default.m3u8`
-        // EXPLICITLY EXCLUDE: `${video.permlink}/480p.m3u8`
-      );
-      
-      // Prefixes for HLS segment folders to delete - EXCLUDE 480p/ and thumbnails/
-      prefixes.push(
-        `${video.permlink}/1080p/`,
-        `${video.permlink}/720p/`,
-        `${video.permlink}/360p/`
-        // EXPLICITLY EXCLUDE: `${video.permlink}/480p/`
-        // EXPLICITLY EXCLUDE: `${video.permlink}/thumbnails/`
-        // EXPLICITLY EXCLUDE: `${video.permlink}/` (base folder)
-      );
+      // Delete playlists for unwanted resolutions (NEVER delete default.m3u8 - we'll update it instead)
+      resolutionsToDelete.forEach(resolution => {
+        files.push(`${video.permlink}/${resolution}.m3u8`);
+        prefixes.push(`${video.permlink}/${resolution}/`);
+      });
     }
 
-    // Add the original source video file (always delete source)
+    // Add the original source video file (always delete source to save space)
     if (video.originalFilename && !video.originalFilename.startsWith('ipfs://')) {
       files.push(video.originalFilename);
       
@@ -329,8 +359,8 @@ export class DatabaseService {
       }
     }
 
-    // Add the processed video filename if NOT 480p
-    if (video.filename && !video.filename.startsWith('ipfs://') && !video.filename.includes('480p')) {
+    // Add the processed video filename (usually the source file, safe to delete)
+    if (video.filename && !video.filename.startsWith('ipfs://')) {
       files.push(video.filename);
     }
 

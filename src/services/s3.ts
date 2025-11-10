@@ -1,4 +1,4 @@
-import { S3Client, DeleteObjectCommand, HeadObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { S3Client, DeleteObjectCommand, HeadObjectCommand, ListObjectsV2Command, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { config } from '../config';
 import { logger } from '../utils/logger';
 
@@ -311,5 +311,133 @@ export class S3Service {
       objectCount,
       averageSize
     };
+  }
+
+  /**
+   * Get the content of an S3 object as a string
+   */
+  async getObjectContent(key: string): Promise<string | null> {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      });
+
+      const response = await this.s3Client.send(command);
+      if (response.Body) {
+        const content = await response.Body.transformToString();
+        return content;
+      }
+      return null;
+    } catch (error: any) {
+      if (error.name === 'NoSuchKey') {
+        logger.debug(`Object ${key} does not exist`);
+        return null;
+      }
+      logger.error(`Error getting object content ${key}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload content to S3
+   */
+  async putObjectContent(key: string, content: string, contentType: string = 'application/vnd.apple.mpegurl'): Promise<boolean> {
+    try {
+      const command = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+        Body: content,
+        ContentType: contentType,
+      });
+
+      await this.s3Client.send(command);
+      logger.info(`Successfully uploaded content to S3: ${key}`);
+      return true;
+    } catch (error) {
+      logger.error(`Error uploading content to S3 ${key}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Analyze available video resolutions and find the smallest one to keep
+   */
+  async getAvailableResolutions(permlink: string): Promise<{
+    available: string[];
+    smallest: string | null;
+    toDelete: string[];
+  }> {
+    const resolutions = ['360p', '480p', '720p', '1080p'];
+    const available: string[] = [];
+    
+    // Check which resolutions actually exist
+    for (const resolution of resolutions) {
+      const playlistExists = await this.objectExists(`${permlink}/${resolution}.m3u8`);
+      if (playlistExists) {
+        available.push(resolution);
+      }
+    }
+    
+    if (available.length === 0) {
+      return { available: [], smallest: null, toDelete: [] };
+    }
+    
+    // Sort by quality (lowest first) and pick the smallest
+    const sortedByQuality = available.sort((a, b) => {
+      const qualityOrder = { '360p': 1, '480p': 2, '720p': 3, '1080p': 4 };
+      return qualityOrder[a as keyof typeof qualityOrder] - qualityOrder[b as keyof typeof qualityOrder];
+    });
+    
+    const smallest = sortedByQuality[0];
+    const toDelete = sortedByQuality.slice(1); // Everything except the smallest
+    
+    return { available, smallest, toDelete };
+  }
+
+  /**
+   * Update HLS master playlist to only reference the smallest available resolution
+   */
+  async updateMasterPlaylistForSmallest(permlink: string, resolution: string): Promise<boolean> {
+    const masterPlaylistKey = `${permlink}/default.m3u8`;
+    
+    try {
+      // Create new playlist content with only the smallest resolution
+      const newContent = this.createMasterPlaylistForResolution(resolution);
+      
+      // Upload the updated playlist
+      const success = await this.putObjectContent(masterPlaylistKey, newContent);
+      if (success) {
+        logger.info(`Updated master playlist ${masterPlaylistKey} to reference only ${resolution} content`);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      logger.error(`Failed to update master playlist for ${permlink}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Create a master playlist that only references a specific resolution
+   */
+  private createMasterPlaylistForResolution(resolution: string): string {
+    const resolutionSpecs = {
+      '360p': { bandwidth: 600000, resolution: '640x360' },
+      '480p': { bandwidth: 800000, resolution: '854x480' },
+      '720p': { bandwidth: 1200000, resolution: '1280x720' },
+      '1080p': { bandwidth: 2000000, resolution: '1920x1080' }
+    };
+    
+    const spec = resolutionSpecs[resolution as keyof typeof resolutionSpecs];
+    if (!spec) {
+      throw new Error(`Unknown resolution: ${resolution}`);
+    }
+    
+    return `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-STREAM-INF:BANDWIDTH=${spec.bandwidth},RESOLUTION=${spec.resolution},CODECS="avc1.42001e,mp4a.40.2"
+${resolution}.m3u8
+`;
   }
 }

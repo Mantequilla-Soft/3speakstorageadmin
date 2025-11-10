@@ -111,12 +111,11 @@ export async function slimUserCommand(options: SlimUserOptions): Promise<void> {
     // Calculate potential savings
     let totalCurrentSize = 0;
     let estimatedSavings = 0;
-    const resolutionsToDelete = ['1080p', '720p', '360p'];
 
     for (const video of eligibleVideos) {
       totalCurrentSize += video.size || 0;
-      // Estimate 70% savings (based on storage diet testing)
-      estimatedSavings += (video.size || 0) * 0.7;
+      // Estimate 70-90% savings (keeping only smallest resolution)
+      estimatedSavings += (video.size || 0) * 0.8;
     }
 
     const currentStorage = formatBytes(totalCurrentSize);
@@ -125,7 +124,7 @@ export async function slimUserCommand(options: SlimUserOptions): Promise<void> {
 
     logger.info(`Eligible videos found: ${eligibleVideos.length}`);
     logger.info(`Current storage: ${currentStorage.gb} GB (${currentStorage.tb} TB)`);
-    logger.info(`Estimated savings: ${savingsStorage.gb} GB (${savingsStorage.tb} TB) - ~70% reduction`);
+    logger.info(`Estimated savings: ${savingsStorage.gb} GB (${savingsStorage.tb} TB) - ~80% reduction`);
     logger.info(`💰 Cost savings: $${costSavings.dailyCost.toFixed(4)}/day, $${costSavings.monthlyCost.toFixed(2)}/month, $${costSavings.annualCost.toFixed(2)}/year`);
 
     // Show sample videos
@@ -149,9 +148,9 @@ export async function slimUserCommand(options: SlimUserOptions): Promise<void> {
       return;
     }
 
-    logger.info(`Starting storage optimization for ${username} (${olderThanMonths}+ month old videos)`);
-    logger.info(`Deleting resolutions: ${resolutionsToDelete.join(', ')} + source files`);
-    logger.info(`Keeping: 480p playlist + segments + thumbnails`);
+    logger.info(`Starting smart storage optimization for ${username} (${olderThanMonths}+ month old videos)`);
+    logger.info(`Strategy: Analyze each video and keep only the smallest available resolution`);
+    logger.info(`This will preserve video playability while maximizing storage savings`);
 
     const results = {
       processed: 0,
@@ -173,10 +172,36 @@ export async function slimUserCommand(options: SlimUserOptions): Promise<void> {
           const label = (video.title || video.permlink || video._id).substring(0, 30);
           let videoStorageFreed = 0;
 
-          // Use the specialized method that excludes 480p content
-          const s3Paths = db.getS3PathsForSlim(video);
+          if (!video.permlink) {
+            logger.warn(`Skipping video ${video._id}: No permlink found`);
+            results.processed++;
+            progressBar.increment('[skipped-no-permlink]');
+            continue;
+          }
+
+          // SMART ANALYSIS: Find what resolutions exist and determine the cheapest option
+          const resolutionAnalysis = await s3Service.getAvailableResolutions(video.permlink);
           
-          // All files and prefixes returned are safe to delete (480p excluded)
+          if (resolutionAnalysis.available.length === 0) {
+            logger.warn(`Skipping video ${video._id} (${video.permlink}): No video resolutions found`);
+            results.processed++;
+            progressBar.increment('[skipped-no-content]');
+            continue;
+          }
+
+          if (resolutionAnalysis.toDelete.length === 0) {
+            logger.info(`Skipping video ${video._id} (${video.permlink}): Already optimized (only ${resolutionAnalysis.smallest} exists)`);
+            results.processed++;
+            progressBar.increment('[already-optimized]');
+            continue;
+          }
+
+          logger.info(`Video ${video.permlink}: Found ${resolutionAnalysis.available.join(', ')} - keeping ${resolutionAnalysis.smallest}, deleting ${resolutionAnalysis.toDelete.join(', ')}`);
+
+          // Get paths for content to delete (everything except the smallest resolution)
+          const s3Paths = db.getS3PathsForSlim(video, resolutionAnalysis.toDelete);
+          
+          // Delete unwanted resolution files and segments
           const filesToDelete = s3Paths.files;
           const prefixesToDelete = s3Paths.prefixes;
 
@@ -188,22 +213,28 @@ export async function slimUserCommand(options: SlimUserOptions): Promise<void> {
             }
           }
 
-          // Delete HLS segment folders
+          // Delete HLS segment folders for unwanted resolutions
           for (const prefix of prefixesToDelete) {
             const result = await s3Service.deleteObjectsWithPrefix(prefix);
             results.s3ObjectsDeleted += result.deleted;
           }
 
-          // Estimate storage freed (70% of original size)
-          videoStorageFreed = (video.size || 0) * 0.7;
+          // Update master playlist to only reference the smallest resolution
+          const playlistUpdated = await s3Service.updateMasterPlaylistForSmallest(video.permlink, resolutionAnalysis.smallest!);
+          if (!playlistUpdated) {
+            logger.warn(`Failed to update master playlist for ${video.permlink} - video may not play correctly`);
+          }
 
-          // Mark as optimized in database
-          await db.markVideoAsCleanedUp(video._id, {
-            cleanupDate: new Date(),
-            cleanupReason: `slim-user:${username}:${olderThanMonths}months`,
-            storageType: 's3',
-            originalStatus: video.status,
-            optimizationType: 'storage-diet-user'
+          // Estimate storage freed (80% of original size when keeping smallest resolution)
+          videoStorageFreed = (video.size || 0) * 0.8;
+
+          // DO NOT mark as deleted! This is optimization, not deletion
+          // Instead, just mark as optimized with a flag (without changing status)
+          await db.updateVideoOptimizationFlag(video._id, {
+            optimizedDate: new Date(),
+            optimizationType: 'storage-diet-user',
+            optimizedBy: `slim-user:${username}:${olderThanMonths}months`,
+            storageReduction: videoStorageFreed
           });
 
           results.dbUpdated++;

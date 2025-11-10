@@ -12,6 +12,7 @@ import { s3DietCommand } from './commands/s3-diet';
 import { ipfsDietCommand } from './commands/ipfs-diet';
 import { nukeAccountCommand } from './commands/nuke-account';
 import { slimUserCommand } from './commands/slim-user';
+import { slimVideoCommand } from './commands/slim-video';
 import { trimFatCommand } from './commands/trim-fat';
 
 const program = new Command();
@@ -114,6 +115,14 @@ program
   .option('--dry-run', 'Preview storage savings without executing optimization')
   .option('--no-confirm', 'Skip confirmation prompts (use with caution)')
   .action(slimUserCommand);
+
+program
+  .command('slim-video')
+  .description('Optimize storage for a specific video by keeping only the smallest resolution')
+  .argument('<url>', '3Speak video URL (e.g., https://3speak.tv/watch?v=mes/zlsjctuz)')
+  .option('--dry-run', 'Show what would be done without making changes', false)
+  .option('--no-confirm', 'Skip confirmation prompt', false)
+  .action(slimVideoCommand);
 
 program
   .command('trim-fat')
