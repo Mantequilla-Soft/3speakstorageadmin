@@ -149,6 +149,25 @@ These scripts make storage cleanup super simple and safe. No need to remember co
 ./scripts/slim-video.sh alice/my-video
 ```
 
+### 🔍 `reconcile-s3.sh` - S3 Storage Reconciliation (S3 Videos Only) 🆕
+**What it does:** Find and clean up "phantom" videos where database records exist but S3 files are missing
+**Storage Type:** ✅ **S3 videos only** - checks actual file existence on S3/Wasabi
+**Safety:** Medium risk (only marks videos as deleted if files are actually missing)
+**Problem Solved:** Broken video links where posts exist but playback fails due to missing files
+**Features:** File existence verification, detailed reporting, database cleanup
+**When to use:** Fix broken user profiles with phantom videos that can't be played
+
+```bash
+# Check for missing S3 files (dry-run)
+./scripts/reconcile-s3.sh alice
+
+# Execute reconciliation (mark missing videos as deleted)
+./scripts/reconcile-s3.sh alice --execute
+
+# Include already optimized videos in check
+./scripts/reconcile-s3.sh alice --include-optimized --execute
+```
+
 ### ☢️ `nuke-account.sh` - Nuclear Account Deletion (Both Storage Types - EXTREME)
 **What it does:** Erases every trace of a specific account from all storage systems
 **Storage Type:** ✅ **Both S3 and IPFS** - intelligently detects and applies appropriate destruction method
@@ -219,9 +238,10 @@ These scripts make storage cleanup super simple and safe. No need to remember co
 8. **S3 optimization:** `./scripts/s3-diet.sh` (optimize rare S3 videos)
 9. **IPFS optimization:** `./scripts/ipfs-diet.sh` (THE BIG SAVINGS - unpins old IPFS content)
 10. **Single video test:** `./scripts/slim-video.sh` (test optimization on individual videos)
-11. **User optimization:** `./scripts/slim-user.sh` (target specific heavy users)
-12. **Account fat trimming:** `./scripts/trim-fat.sh` (flexible account cleanup with age/engagement criteria)
-13. **Nuclear option:** `./scripts/nuke-account.sh` (per-account wipe, irreversible)
+11. **S3 reconciliation:** `./scripts/reconcile-s3.sh` (fix phantom videos with missing files)
+12. **User optimization:** `./scripts/slim-user.sh` (target specific heavy users)
+13. **Account fat trimming:** `./scripts/trim-fat.sh` (flexible account cleanup with age/engagement criteria)
+14. **Nuclear option:** `./scripts/nuke-account.sh` (per-account wipe, irreversible)
 
 **For Regular Maintenance:**
 
@@ -248,6 +268,9 @@ These scripts make storage cleanup super simple and safe. No need to remember co
 
 # 🎯 Single video optimization: Test on individual videos (great for testing)
 ./scripts/slim-video.sh https://3speak.tv/watch?v=user/video
+
+# 🔍 S3 storage reconciliation: Fix phantom videos (missing files)
+./scripts/reconcile-s3.sh username
 
 # 🎯 User-specific optimization: Target heavy S3 users (cost savings calculations)
 ./scripts/slim-user.sh

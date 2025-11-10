@@ -14,6 +14,7 @@ import { nukeAccountCommand } from './commands/nuke-account';
 import { slimUserCommand } from './commands/slim-user';
 import { slimVideoCommand } from './commands/slim-video';
 import { trimFatCommand } from './commands/trim-fat';
+import { reconcileS3Command } from './commands/reconcile-s3';
 
 const program = new Command();
 
@@ -135,6 +136,16 @@ program
   .option('--dry-run', 'Preview fat trimming without executing removal')
   .option('--no-confirm', 'Skip confirmation prompts (use with caution)')
   .action(trimFatCommand);
+
+program
+  .command('reconcile-s3')
+  .description('Reconcile S3 storage - find and clean up videos with missing files')
+  .requiredOption('-u, --username <username>', 'User account to reconcile')
+  .option('--include-optimized', 'Include already optimized videos in reconciliation')
+  .option('--batch-size <size>', 'Process videos in batches of specified size (default: 25)')
+  .option('--dry-run', 'Preview reconciliation without making changes')
+  .option('--no-confirm', 'Skip confirmation prompts (use with caution)')
+  .action(reconcileS3Command);
 
 async function main() {
   try {

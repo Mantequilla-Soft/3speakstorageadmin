@@ -39,6 +39,7 @@ npm run dev -- trim-fat --username myuser --dry-run # Preview account cleanup
 - **S3/Wasabi Support**: Delete HLS video files from cloud storage with permlink-based structure
 - **🆕 Smart Storage Optimization**: Keep smallest resolution, delete duplicates (saves 80%+ storage)
 - **🆕 Individual Video Tools**: Optimize single videos with 3Speak URL support
+- **🆕 S3 Storage Reconciliation**: Find and fix "phantom" videos with missing files
 - **🆕 Intelligent Resolution Analysis**: Automatically finds cheapest storage option
 - **Safety Features**: Dry-run mode, confirmation prompts, batch processing, and cleanup state tracking
 - **Comprehensive CLI**: Interactive commands with detailed help and logging
@@ -95,6 +96,7 @@ MAX_BATCH_SIZE=100
 **🆕 Storage Optimization Scripts:**
 ```bash
 ./scripts/slim-video.sh https://3speak.tv/watch?v=alice/my-video  # Optimize single video (NEW!)
+./scripts/reconcile-s3.sh alice                                    # Fix phantom videos (NEW!)
 ```
 
 These scripts:
@@ -182,6 +184,10 @@ npm run dev -- stats --detailed
 # Single video optimization (easiest)
 ./scripts/slim-video.sh https://3speak.tv/watch?v=alice/my-video
 
+# Fix phantom videos (missing S3 files)
+./scripts/reconcile-s3.sh alice                          # Preview reconciliation
+./scripts/reconcile-s3.sh alice --execute               # Execute reconciliation
+
 # User storage optimization (bulk)
 npm run dev -- slim-user --username myuser --dry-run     # Preview optimization
 npm run dev -- slim-user --username myuser               # Optimize all videos
@@ -189,6 +195,10 @@ npm run dev -- slim-user --username myuser               # Optimize all videos
 # Individual video CLI (advanced)
 npm run dev -- slim-video --permlink my-video --author alice --dry-run
 npm run dev -- slim-video --permlink my-video --author alice
+
+# S3 reconciliation CLI (advanced)
+npm run dev -- reconcile-s3 --username alice --dry-run   # Preview reconciliation
+npm run dev -- reconcile-s3 --username alice             # Execute reconciliation
 
 # Clean up admin-deleted videos from S3 storage
 npm run dev -- list --status "deleted" --limit 10      # Preview  
@@ -405,6 +415,58 @@ npm run dev -- slim-video --permlink my-video --author alice
 - **IPFS Graceful**: For IPFS videos, shows informative message and exits safely
 - **Master Playlist Updates**: Maintains video playability after optimization
 
+### 🆕 `reconcile-s3` - S3 Storage Reconciliation 🔍
+**NEW!** Find and clean up "phantom" videos where database records exist but S3 files are missing.
+
+```bash
+npm run dev -- reconcile-s3 [options]
+```
+
+**Account Options:**
+- `-u, --username <username>` - **REQUIRED** - User account to reconcile
+
+**Safety Options:**
+- `--dry-run` - **REQUIRED FIRST** - Preview reconciliation without making changes
+- `--include-optimized` - Include already optimized videos in reconciliation
+- `--batch-size <size>` - Process videos in batches (default: 25)
+
+**Examples:**
+```bash
+# ALWAYS preview first
+npm run dev -- reconcile-s3 --username alice --dry-run
+
+# Execute reconciliation (after dry-run)
+npm run dev -- reconcile-s3 --username alice
+
+# Include optimized videos in check
+npm run dev -- reconcile-s3 --username alice --include-optimized --dry-run
+```
+
+**🆕 Easy Script Usage:**
+```bash
+# The wrapper script provides user-friendly interface
+./scripts/reconcile-s3.sh alice
+
+# Execute reconciliation after preview
+./scripts/reconcile-s3.sh alice --execute
+
+# Include optimized videos
+./scripts/reconcile-s3.sh alice --include-optimized --execute
+```
+
+**How it works:**
+- **File Existence Check**: Verifies that S3 master playlists actually exist on storage
+- **Database Cleanup**: Marks missing videos as deleted to fix broken links
+- **Detailed Reporting**: Shows exactly which videos are missing and their details
+- **S3 Only**: Only checks S3 videos (skips IPFS videos gracefully)
+- **User Experience Fix**: Removes "phantom" videos that show in profiles but can't be played
+
+**Problem Solved:**
+- User profiles showing videos that can't be played
+- Database records pointing to non-existent S3 files
+- Broken video links causing poor user experience
+- Phantom content cluttering user interfaces
+
 ## 🚨 Production Safety Workflow
 
 **CRITICAL: Follow this order every time!**
@@ -445,7 +507,8 @@ src/
 │   ├── stats.ts            # Storage statistics and analytics
 │   ├── trim-fat.ts         # Account-specific cleanup
 │   ├── slim-user.ts        # 🆕 Smart storage optimization per user
-│   └── slim-video.ts       # 🆕 Individual video optimization
+│   ├── slim-video.ts       # 🆕 Individual video optimization
+│   └── reconcile-s3.ts     # 🆕 S3 storage reconciliation
 ├── config/       # Environment and connection configs  
 ├── services/     # MongoDB, IPFS, S3 service classes
 │   ├── database.ts         # MongoDB operations and queries
