@@ -54,9 +54,12 @@ export async function cleanupCommand(options: CleanupOptions): Promise<void> {
       });
     } else if (options.status === 'deleted') {
       cleanupType = 'admin-deleted';
-      videos = await db.getVideosForCleanup('admin-deleted', { 
-        limit: options.batchSize ? parseInt(options.batchSize, 10) : 100 
-      });
+      // Use getVideosByCriteria for better consistency with list command
+      const criteria: any = { status: ['deleted'] };
+      if (options.storageType) {
+        criteria.storageType = options.storageType;
+      }
+      videos = await db.getVideosByCriteria(criteria, options.batchSize ? parseInt(options.batchSize, 10) : 100);
     } else if (options.maxViews) {
       cleanupType = 'low-engagement';
       videos = await db.getVideosForCleanup('low-engagement', { 
@@ -80,11 +83,12 @@ export async function cleanupCommand(options: CleanupOptions): Promise<void> {
 
     logger.info(`Found ${videos.length} videos for cleanup (type: ${cleanupType})`);
     
-    // Apply storage type filter if specified
+    // Apply storage type filter if specified (for non-admin-deleted cleanup types)
     let filteredVideos = videos;
-    if (options.storageType) {
+    if (options.storageType && cleanupType !== 'admin-deleted') {
       filteredVideos = videos.filter(video => {
         const storageType = db.getVideoStorageType(video);
+
         return storageType === options.storageType;
       });
       logger.info(`After storage type filter: ${filteredVideos.length} videos`);
