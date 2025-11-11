@@ -24,7 +24,7 @@ export class IpfsService {
    */
   async isPinned(hash: string): Promise<boolean> {
     try {
-      const response = await axios.get(`${this.baseUrl}/pin/ls`, {
+      const response = await axios.post(`${this.baseUrl}/pin/ls`, null, {
         params: {
           arg: hash,
           type: 'all'
@@ -36,6 +36,11 @@ export class IpfsService {
       return hash in data.Keys;
     } catch (error: any) {
       if (error.response?.status === 500 && error.response?.data?.Message?.includes('not pinned')) {
+        return false;
+      }
+      // Handle timeout errors as "not pinned" - likely the hash doesn't exist
+      if (error.code === 'ECONNABORTED' && error.message?.includes('timeout')) {
+        logger.info(`Timeout checking pin status for ${hash} - assuming not pinned`);
         return false;
       }
       logger.error(`Failed to check pin status for ${hash}`, error);
@@ -87,7 +92,7 @@ export class IpfsService {
    */
   async listPinnedHashes(): Promise<string[]> {
     try {
-      const response = await axios.get(`${this.baseUrl}/pin/ls`, {
+      const response = await axios.post(`${this.baseUrl}/pin/ls`, null, {
         params: {
           type: 'recursive'
         },
@@ -184,7 +189,7 @@ export class IpfsService {
    */
   async getServiceInfo(): Promise<any> {
     try {
-      const response = await axios.get(`${this.baseUrl}/version`, {
+      const response = await axios.post(`${this.baseUrl}/version`, null, {
         timeout: 5000
       });
       return response.data;
