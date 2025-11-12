@@ -31,10 +31,11 @@ export async function purgeS3Command(options: PurgeS3Options): Promise<void> {
       logger.info('⚠️  This will update video statuses in the database!');
     }
 
-    // Get all S3 videos from database
+    // Get all S3 videos from database (excluding already deleted ones)
     logger.info('🔍 Finding S3 videos in database...');
     const videos = await db.getVideosByCriteria({
-      storageType: 's3'
+      storageType: 's3',
+      excludeDeleted: true  // Skip videos already marked as deleted
     }, limit || 1000); // Reasonable default limit
 
     if (videos.length === 0) {

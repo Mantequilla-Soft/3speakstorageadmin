@@ -506,6 +506,11 @@ export class DatabaseService {
       query.status = { $in: criteria.status };
     }
     
+    // Exclude already deleted videos for purge operations
+    if (criteria.excludeDeleted) {
+      query.status = { $ne: 'deleted' };
+    }
+    
     if (criteria.orphaned) {
       query.$and = [
         { $or: [
