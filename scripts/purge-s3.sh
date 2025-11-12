@@ -134,9 +134,9 @@ echo ""
 START_TIME=$(date)
 
 if [ "$LIMIT" -eq 0 ]; then
-    npm start -- purge-s3 --no-dry-run --batch-size $BATCH_SIZE --no-confirm
+    npm start -- purge-s3 --batch-size $BATCH_SIZE --no-confirm
 else
-    npm start -- purge-s3 --no-dry-run --batch-size $BATCH_SIZE --limit $LIMIT --no-confirm
+    npm start -- purge-s3 --batch-size $BATCH_SIZE --limit $LIMIT --no-confirm
 fi
 
 if [ $? -eq 0 ]; then
