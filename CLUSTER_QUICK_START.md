@@ -1,16 +1,10 @@
 # Quick Reference: Cluster Admin Tool Phase 1
 
-## TL;DR Setup (30 seconds)
+## TL;DR Setup (10 seconds)
 
 ```bash
-# Terminal 1: Establish tunnel
+# Cluster is directly accessible - no tunnel needed!
 cd /home/meno/Documents/menosoft/3speakstorageadmin
-./setup-cluster-tunnel.sh root@ipfs.3speak.tv
-# Leave this running
-
-# Terminal 2: Test cluster
-export IPFS_CLUSTER_ENDPOINT=http://localhost:9095
-export IPFS_CLUSTER_PINS_ENDPOINT=http://localhost:9097
 npm run build && node dist/index.js cluster-status
 ```
 
