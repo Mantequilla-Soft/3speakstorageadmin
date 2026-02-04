@@ -1,14 +1,14 @@
-import { IpfsService } from '../services/ipfs';
+import { ClusterDirectService } from '../services/cluster-direct';
 import { logger } from '../utils/logger';
 
 export async function clusterStatus(): Promise<void> {
   try {
     logger.info('🔍 Fetching IPFS Cluster status...');
     
-    const ipfs = new IpfsService();
+    const cluster = new ClusterDirectService();
 
     // Get cluster status
-    const status = await ipfs.getClusterStatus();
+    const status = await cluster.getClusterStatus();
     logger.info('📍 Cluster Status:', {
       peername: status.peername,
       reachable: status.health.reachable,
@@ -18,20 +18,19 @@ export async function clusterStatus(): Promise<void> {
 
     if (!status.health.reachable) {
       logger.error('❌ Cluster is not reachable. Ensure:');
-      logger.error('   1. Cluster is running: systemctl status ipfs-cluster.service');
-      logger.error('   2. SSH tunnel is active (if remote): ssh -L 9095:127.0.0.1:9095 -L 9097:127.0.0.1:9097 root@ipfs.3speak.tv');
-      logger.error('   3. IPFS_CLUSTER_ENDPOINT is set correctly (default: http://127.0.0.1:9095)');
+      logger.error('   1. Supernode is running and accessible at ipfs.3speak.tv');
+      logger.error('   2. SSH key is configured for root@ipfs.3speak.tv');
+      logger.error('   3. Cluster service is running: systemctl status ipfs-cluster.service');
       return;
     }
 
     // Get cluster metrics
     logger.info('📊 Fetching cluster metrics...');
-    const metrics = await ipfs.getClusterMetrics();
+    const metrics = await cluster.getClusterMetrics();
 
     logger.info('\n🎯 Cluster Metrics:', {
       totalPins: metrics.totalPins,
       pinnedSizeBytes: metrics.pinnedSize,
-      pinnedSizeGB: (metrics.pinnedSize / (1024 ** 3)).toFixed(2) + ' GB',
       peersCount: metrics.peers.length,
       status: metrics.status
     });
@@ -42,25 +41,9 @@ export async function clusterStatus(): Promise<void> {
       metrics.peers.forEach((peer, idx) => {
         logger.info(`   Peer ${idx + 1}: ${peer.peername}`, {
           ipfs: peer.ipfs,
-          version: peer.version,
-          addresses: peer.addresses.length
+          version: peer.version
         });
       });
-    }
-
-    // Display helpful information
-    logger.info('\n📝 Cluster Information:');
-    logger.info(`   Peername: ${status.peername}`);
-    logger.info(`   Trusted Peers: ${status.trustedPeers.join(', ') || 'None'}`);
-    
-    if (status.peerAddresses.length > 0) {
-      logger.info(`   \n🌐 Peer Addresses:`);
-      status.peerAddresses.slice(0, 3).forEach(addr => {
-        logger.info(`      ${addr}`);
-      });
-      if (status.peerAddresses.length > 3) {
-        logger.info(`      ... and ${status.peerAddresses.length - 3} more`);
-      }
     }
 
     logger.info('\n✅ Cluster status retrieved successfully');
@@ -74,24 +57,24 @@ export async function clusterPins(): Promise<void> {
   try {
     logger.info('📋 Fetching cluster pin list...');
     
-    const ipfs = new IpfsService();
-    const pins = await ipfs.listClusterPins();
+    const cluster = new ClusterDirectService();
+    const pinCount = await cluster.getClusterPinCount();
+    const pins = await cluster.listClusterPins(10);
 
-    logger.info(`\n📌 Total pins in cluster: ${pins.length}`);
+    logger.info(`\n📌 Total pins in cluster: ${pinCount}`);
     
     if (pins.length === 0) {
       logger.info('No pins found in cluster');
       return;
     }
 
-    // Show first 10 pins as example
     logger.info('\n📍 Sample pins (first 10):');
-    pins.slice(0, 10).forEach((pin, idx) => {
+    pins.forEach((pin, idx) => {
       logger.info(`   ${idx + 1}. ${pin}`);
     });
 
-    if (pins.length > 10) {
-      logger.info(`   ... and ${pins.length - 10} more pins`);
+    if (pinCount > 10) {
+      logger.info(`   ... and ${pinCount - 10} more pins`);
     }
 
     logger.info('\n✅ Pin list retrieved successfully');
@@ -105,8 +88,8 @@ export async function clusterCheckPin(hash: string): Promise<void> {
   try {
     logger.info(`🔍 Checking if ${hash} is pinned in cluster...`);
     
-    const ipfs = new IpfsService();
-    const isPinned = await ipfs.isClusterPinned(hash);
+    const cluster = new ClusterDirectService();
+    const isPinned = await cluster.isClusterPinned(hash);
 
     if (isPinned) {
       logger.info(`✅ Hash ${hash} is pinned in cluster`);
