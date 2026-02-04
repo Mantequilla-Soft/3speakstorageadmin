@@ -1,6 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
 import { config } from '../config';
 import { logger } from '../utils/logger';
+import { ClusterMetrics, ClusterPeerInfo, ClusterStatus } from '../types';
 
 export interface IpfsPin {
   hash: string;
@@ -197,5 +198,279 @@ export class IpfsService {
       logger.error('Failed to get IPFS service info', error);
       throw error;
     }
+  }
+
+  // ============================================
+  // CLUSTER METHODS
+  // ============================================
+
+  /**
+   * Get cluster status and peer information
+   */
+  async getClusterStatus(): Promise<ClusterStatus> {
+    try {
+      const clusterUrl = config.cluster.apiUrl;
+      const response = await axios.get(`${clusterUrl}/api/v0/status`, {
+        timeout: 10000
+      });
+
+      const data = response.data;
+      return {
+        peername: data.name || 'unknown',
+        peerAddresses: data.addresses || [],
+        trustedPeers: data.trusted_peers || [],
+        health: {
+          reachable: true,
+          errorRate: 0
+        }
+      };
+    } catch (error: any) {
+      logger.error('Failed to get cluster status', error.message);
+      return {
+        peername: 'offline',
+        peerAddresses: [],
+        trustedPeers: [],
+        health: {
+          reachable: false,
+          errorRate: 1
+        }
+      };
+    }
+  }
+
+  /**
+   * Get cluster metrics (pin counts, peer info)
+   */
+  async getClusterMetrics(): Promise<ClusterMetrics> {
+    try {
+      const clusterUrl = config.cluster.apiUrl;
+      
+      // Get peer info
+      const peerResponse = await axios.get(`${clusterUrl}/api/v0/peers`, {
+        timeout: 10000
+      });
+
+      const peers = peerResponse.data.peers || [];
+      const peerInfos: ClusterPeerInfo[] = peers.map((peer: any) => ({
+        peername: peer.name || peer.id,
+        ipfs: peer.ipfs?.id || 'unknown',
+        addresses: peer.addresses || [],
+        version: peer.version || 'unknown',
+        commit: peer.commit || 'unknown'
+      }));
+
+      // Try to get pin count
+      let totalPins = 0;
+      let pinnedSize = 0;
+      try {
+        const pinResponse = await axios.get(`${clusterUrl}/api/v0/pins`, {
+          timeout: 30000,
+          params: {
+            filter: 'all'
+          }
+        });
+        totalPins = pinResponse.data.count || Object.keys(pinResponse.data).length || 0;
+        pinnedSize = pinResponse.data.size || 0;
+      } catch (e) {
+        logger.warn('Could not retrieve pin count from cluster', (e as Error).message);
+      }
+
+      return {
+        totalPins,
+        pinnedSize,
+        peers: peerInfos,
+        status: 'active'
+      };
+    } catch (error: any) {
+      logger.error('Failed to get cluster metrics', error.message);
+      return {
+        totalPins: 0,
+        pinnedSize: 0,
+        peers: [],
+        status: 'offline'
+      };
+    }
+  }
+
+  /**
+   * Check if a hash is pinned in the cluster
+   */
+  async isClusterPinned(hash: string): Promise<boolean> {
+    try {
+      const clusterUrl = config.cluster.pinsUrl;
+      const response = await axios.get(`${clusterUrl}/api/v0/pins/${hash}`, {
+        timeout: 10000
+      });
+      return response.status === 200;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return false;
+      }
+      logger.error(`Failed to check cluster pin status for ${hash}`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Pin a hash in the cluster
+   */
+  async clusterPin(hash: string, metadata?: Record<string, string>): Promise<boolean> {
+    try {
+      const clusterUrl = config.cluster.pinsUrl;
+      const body = {
+        cid: hash,
+        replication_min: -1,
+        replication_max: -1,
+        metadata: metadata || {}
+      };
+
+      const response = await axios.post(`${clusterUrl}/api/v0/pins`, body, {
+        timeout: 30000
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        logger.info(`Successfully pinned ${hash} to cluster`);
+        return true;
+      }
+      return false;
+    } catch (error: any) {
+      logger.error(`Failed to pin ${hash} to cluster`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Unpin a hash from the cluster
+   */
+  async clusterUnpin(hash: string): Promise<boolean> {
+    try {
+      const clusterUrl = config.cluster.pinsUrl;
+      const response = await axios.delete(`${clusterUrl}/api/v0/pins/${hash}`, {
+        timeout: 30000
+      });
+
+      if (response.status === 200 || response.status === 204) {
+        logger.info(`Successfully unpinned ${hash} from cluster`);
+        return true;
+      }
+      return false;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        logger.info(`Hash ${hash} not found in cluster pins`);
+        return true;
+      }
+      logger.error(`Failed to unpin ${hash} from cluster`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * List all pins in cluster
+   */
+  async listClusterPins(): Promise<string[]> {
+    try {
+      const clusterUrl = config.cluster.pinsUrl;
+      const response = await axios.get(`${clusterUrl}/api/v0/pins`, {
+        timeout: 60000,
+        params: {
+          filter: 'all'
+        }
+      });
+
+      if (Array.isArray(response.data)) {
+        return response.data.map((pin: any) => pin.cid || pin);
+      }
+
+      return Object.keys(response.data);
+    } catch (error) {
+      logger.error('Failed to list cluster pins', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Batch pin to cluster
+   */
+  async batchClusterPin(hashes: string[], batchSize: number = 10): Promise<{
+    success: string[];
+    failed: string[];
+  }> {
+    const result = {
+      success: [] as string[],
+      failed: [] as string[]
+    };
+
+    logger.info(`Starting batch cluster pin of ${hashes.length} hashes`);
+
+    for (let i = 0; i < hashes.length; i += batchSize) {
+      const batch = hashes.slice(i, i + batchSize);
+      logger.info(`Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(hashes.length / batchSize)}`);
+
+      for (const hash of batch) {
+        try {
+          const success = await this.clusterPin(hash);
+          if (success) {
+            result.success.push(hash);
+          } else {
+            result.failed.push(hash);
+          }
+        } catch (error) {
+          logger.error(`Error pinning ${hash} to cluster`, error);
+          result.failed.push(hash);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      if (i + batchSize < hashes.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+
+    logger.info(`Batch cluster pin completed: ${result.success.length} success, ${result.failed.length} failed`);
+    return result;
+  }
+
+  /**
+   * Batch unpin from cluster
+   */
+  async batchClusterUnpin(hashes: string[], batchSize: number = 10): Promise<{
+    success: string[];
+    failed: string[];
+  }> {
+    const result = {
+      success: [] as string[],
+      failed: [] as string[]
+    };
+
+    logger.info(`Starting batch cluster unpin of ${hashes.length} hashes`);
+
+    for (let i = 0; i < hashes.length; i += batchSize) {
+      const batch = hashes.slice(i, i + batchSize);
+      logger.info(`Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(hashes.length / batchSize)}`);
+
+      for (const hash of batch) {
+        try {
+          const success = await this.clusterUnpin(hash);
+          if (success) {
+            result.success.push(hash);
+          } else {
+            result.failed.push(hash);
+          }
+        } catch (error) {
+          logger.error(`Error unpinning ${hash} from cluster`, error);
+          result.failed.push(hash);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      if (i + batchSize < hashes.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+
+    logger.info(`Batch cluster unpin completed: ${result.success.length} success, ${result.failed.length} failed`);
+    return result;
   }
 }

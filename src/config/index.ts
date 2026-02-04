@@ -12,6 +12,10 @@ export const config: StorageConfig = {
     apiUrl: process.env.IPFS_ENDPOINT || 'http://localhost:5001',
     gatewayUrl: process.env.IPFS_GATEWAY_URL || 'https://ipfs.io'
   },
+  cluster: {
+    apiUrl: process.env.IPFS_CLUSTER_ENDPOINT || 'http://localhost:9095',
+    pinsUrl: process.env.IPFS_CLUSTER_PINS_ENDPOINT || 'http://localhost:9097'
+  },
   s3: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',

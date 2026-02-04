@@ -83,6 +83,10 @@ export interface StorageConfig {
     apiUrl: string;
     gatewayUrl: string;
   };
+  cluster: {
+    apiUrl: string;
+    pinsUrl: string;
+  };
   s3: {
     accessKeyId: string;
     secretAccessKey: string;
@@ -94,5 +98,42 @@ export interface StorageConfig {
     dryRunMode: boolean;
     requireConfirmation: boolean;
     maxBatchSize: number;
+  };
+}
+
+// Cluster Types
+export interface ClusterPeerInfo {
+  peername: string;
+  ipfs: string;
+  addresses: string[];
+  version: string;
+  commit: string;
+}
+
+export interface ClusterPinStatus {
+  name: string;
+  cid: string;
+  allocations: string[];
+  replicationFactorMin: number;
+  replicationFactorMax: number;
+  expireAt: string;
+  metadata: Record<string, string>;
+}
+
+export interface ClusterMetrics {
+  totalPins: number;
+  pinnedSize: number;
+  peers: ClusterPeerInfo[];
+  status: string;
+}
+
+export interface ClusterStatus {
+  peername: string;
+  peerAddresses: string[];
+  trustedPeers: string[];
+  health: {
+    reachable: boolean;
+    averageLatency?: number;
+    errorRate?: number;
   };
 }

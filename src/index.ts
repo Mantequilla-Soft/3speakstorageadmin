@@ -18,6 +18,7 @@ import { reconcileS3Command } from './commands/reconcile-s3';
 import { purgeS3Command } from './commands/purge-s3';
 import { purgeFailedCommand } from './commands/purge-failed';
 import { purgeAbandonedCommand } from './commands/purge-abandoned';
+import { clusterStatus, clusterPins, clusterCheckPin } from './commands/cluster-status';
 
 const program = new Command();
 
@@ -179,6 +180,22 @@ program
   .option('--no-dry-run', 'Actually execute the purge (dangerous!)')
   .option('--no-confirm', 'Skip confirmation prompts (use with caution)')
   .action(purgeAbandonedCommand);
+
+// Cluster management commands
+program
+  .command('cluster-status')
+  .description('Show IPFS Cluster status and metrics')
+  .action(() => clusterStatus());
+
+program
+  .command('cluster-pins')
+  .description('List all pins in the IPFS Cluster')
+  .action(() => clusterPins());
+
+program
+  .command('cluster-check <hash>')
+  .description('Check if a specific hash is pinned in the IPFS Cluster')
+  .action((hash) => clusterCheckPin(hash));
 
 async function main() {
   try {
