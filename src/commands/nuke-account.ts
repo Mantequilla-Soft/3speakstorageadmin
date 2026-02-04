@@ -3,7 +3,7 @@ import { IpfsService } from '../services/ipfs';
 import { S3Service } from '../services/s3';
 import { Video } from '../types';
 import { logger } from '../utils/logger';
-import { config } from '../config';
+import { config, CUTOVER_DATE } from '../config';
 import { ProgressBar } from '../utils/progress';
 import { ProgressManager } from '../utils/progress-manager';
 import { UnifiedLogger } from '../utils/unified-logger';
@@ -109,6 +109,10 @@ async function nukeAccountCommandInternal(options: NukeAccountOptions, progressM
 
   try {
     await db.connect();
+
+    uLog.info(`📅 Cutover Date: ${CUTOVER_DATE.toISOString().split('T')[0]}`);
+    uLog.info(`ℹ️  Only managing content uploaded after cutover (old repo is read-only)`);
+    uLog.info('');
 
     const videos = await db.getVideosByOwner(username, {
       includeCleaned,

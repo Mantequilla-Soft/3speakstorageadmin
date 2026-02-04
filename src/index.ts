@@ -19,6 +19,7 @@ import { purgeS3Command } from './commands/purge-s3';
 import { purgeFailedCommand } from './commands/purge-failed';
 import { purgeAbandonedCommand } from './commands/purge-abandoned';
 import { clusterStatus, clusterPins, clusterCheckPin } from './commands/cluster-status';
+import { testSupernodeUpload } from './commands/test-supernode-upload';
 
 const program = new Command();
 
@@ -196,6 +197,11 @@ program
   .command('cluster-check <hash>')
   .description('Check if a specific hash is pinned in the IPFS Cluster')
   .action((hash) => clusterCheckPin(hash));
+
+program
+  .command('test-supernode-upload')
+  .description('Test upload to supernode and verify which daemon receives it')
+  .action(testSupernodeUpload);
 
 async function main() {
   try {

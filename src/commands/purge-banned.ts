@@ -2,7 +2,7 @@ import { DatabaseService } from '../services/database';
 import { IpfsService } from '../services/ipfs';
 import { Video } from '../types';
 import { logger } from '../utils/logger';
-import { config } from '../config';
+import { config, CUTOVER_DATE } from '../config';
 import { ProgressManager } from '../utils/progress-manager';
 import { UnifiedLogger } from '../utils/unified-logger';
 

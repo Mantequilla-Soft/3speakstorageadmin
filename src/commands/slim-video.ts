@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import { DatabaseService } from '../services/database';
 import { S3Service } from '../services/s3';
 import { logger } from '../utils/logger';
-import { config } from '../config';
+import { config, CUTOVER_DATE } from '../config';
 
 interface SlimVideoOptions {
   dryRun?: boolean;

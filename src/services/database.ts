@@ -1,6 +1,6 @@
 import { MongoClient, Db, Collection } from 'mongodb';
 import { ContentCreator, Video, CleanupCriteria } from '../types';
-import { config } from '../config';
+import { config, CUTOVER_DATE } from '../config';
 import { logger } from '../utils/logger';
 
 export class DatabaseService {
@@ -59,6 +59,9 @@ export class DatabaseService {
     // Exclude videos we've already cleaned up
     query.cleanedUp = { $ne: true };
     
+    // Only manage content uploaded after cutover date (old repo is read-only)
+    query.created = { $gte: CUTOVER_DATE };
+    
     switch (type) {
       case 'banned-users':
         const bannedUsers = await this.getBannedUsers();
@@ -71,7 +74,7 @@ export class DatabaseService {
         cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
         query.$and = [
           { status: { $nin: ['published', 'scheduled', 'deleted'] } }, // Exclude admin-deleted
-          { created: { $lt: cutoffDate } }
+          { created: { $lt: cutoffDate, $gte: CUTOVER_DATE } } // After cutover, before age threshold
         ];
         break;
         
@@ -85,7 +88,7 @@ export class DatabaseService {
         cutoffDateLowEng.setDate(cutoffDateLowEng.getDate() - olderThanDays);
         query.$and = [
           { status: 'published' },
-          { created: { $lt: cutoffDateLowEng } }, // Only videos older than the specified age
+          { created: { $lt: cutoffDateLowEng, $gte: CUTOVER_DATE } }, // After cutover, before age threshold
           { 
             $or: [
               { views: { $lt: viewThreshold } },
@@ -117,6 +120,9 @@ export class DatabaseService {
     const query: any = {
       owner: { $regex: `^${owner}$`, $options: 'i' }
     };
+
+    // Only manage content uploaded after cutover date (old repo is read-only)
+    query.created = { $gte: CUTOVER_DATE };
 
     if (!includeCleaned) {
       query.cleanedUp = { $ne: true };
@@ -268,7 +274,7 @@ export class DatabaseService {
     
     return await videos.find({
       status: { $in: ['uploaded', 'encoding_ipfs', 'processing'] },
-      created: { $lt: cutoffDate }
+      created: { $lt: cutoffDate, $gte: CUTOVER_DATE }
     }).toArray();
   }
 
@@ -459,23 +465,56 @@ export class DatabaseService {
     ipfsVideos: number;
     totalSizeGB: string;
     cleanedVideos: number;
+    newRepoVideos: number;
+    oldRepoVideos: number;
+    newRepoSizeGB: string;
+    oldRepoSizeGB: string;
   }> {
     const videos = this.getVideosCollection();
     
-    const [totalVideos, ipfsVideos, totalSize, cleanupStats] = await Promise.all([
+    const [
+      totalVideos, 
+      ipfsVideos, 
+      totalSize, 
+      cleanupStats,
+      newRepoVideos,
+      oldRepoVideos,
+      newRepoSize,
+      oldRepoSize
+    ] = await Promise.all([
       videos.countDocuments(),
       videos.countDocuments({ filename: { $regex: '^ipfs://' } }),
       videos.aggregate([{ $group: { _id: null, totalSize: { $sum: '$size' } } }]).toArray(),
-      this.getCleanupStats()
+      this.getCleanupStats(),
+      // New repo: after cutover date
+      videos.countDocuments({ created: { $gte: CUTOVER_DATE } }),
+      // Old repo: before cutover date
+      videos.countDocuments({ created: { $lt: CUTOVER_DATE } }),
+      // New repo size
+      videos.aggregate([
+        { $match: { created: { $gte: CUTOVER_DATE } } },
+        { $group: { _id: null, totalSize: { $sum: '$size' } } }
+      ]).toArray(),
+      // Old repo size
+      videos.aggregate([
+        { $match: { created: { $lt: CUTOVER_DATE } } },
+        { $group: { _id: null, totalSize: { $sum: '$size' } } }
+      ]).toArray()
     ]);
     
     const totalSizeBytes = totalSize[0]?.totalSize || 0;
+    const newRepoSizeBytes = newRepoSize[0]?.totalSize || 0;
+    const oldRepoSizeBytes = oldRepoSize[0]?.totalSize || 0;
     
     return {
       totalVideos: totalVideos,
       ipfsVideos: ipfsVideos,
       totalSizeGB: (totalSizeBytes / (1024 ** 3)).toFixed(1),
-      cleanedVideos: cleanupStats.totalCleaned
+      cleanedVideos: cleanupStats.totalCleaned,
+      newRepoVideos: newRepoVideos,
+      oldRepoVideos: oldRepoVideos,
+      newRepoSizeGB: (newRepoSizeBytes / (1024 ** 3)).toFixed(1),
+      oldRepoSizeGB: (oldRepoSizeBytes / (1024 ** 3)).toFixed(1)
     };
   }
 
@@ -484,6 +523,9 @@ export class DatabaseService {
     const videos = this.getVideosCollection();
     
     let query: any = {};
+    
+    // Only manage content uploaded after cutover date (old repo is read-only)
+    query.created = { $gte: CUTOVER_DATE };
     
     if (criteria.bannedUsers) {
       const bannedUsers = await this.getBannedUsers();
@@ -499,7 +541,8 @@ export class DatabaseService {
       if (criteria.olderThanDays && criteria.olderThanDays > 0) {
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - criteria.olderThanDays);
-        query.created = { $lt: cutoffDate };
+        // Combine with cutover date: must be after cutover AND before age threshold
+        query.created = { $lt: cutoffDate, $gte: CUTOVER_DATE };
       }
       
       // Apply view threshold filter
@@ -520,7 +563,8 @@ export class DatabaseService {
       if (criteria.olderThanDays && criteria.olderThanDays > 0) {
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - criteria.olderThanDays);
-        query.created = { $lt: cutoffDate };
+        // Combine with cutover date: must be after cutover AND before age threshold
+        query.created = { $lt: cutoffDate, $gte: CUTOVER_DATE };
       }
       
       // Apply view threshold filter if specified
@@ -541,7 +585,8 @@ export class DatabaseService {
     if (criteria.ageThresholdDays) {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - criteria.ageThresholdDays);
-      query.created = { $lt: cutoffDate };
+      // Combine with cutover date: must be after cutover AND before age threshold
+      query.created = { $lt: cutoffDate, $gte: CUTOVER_DATE };
     }
     
     if (criteria.maxViews !== undefined) {

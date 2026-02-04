@@ -3,6 +3,7 @@ import { DatabaseService } from '../services/database';
 import { S3Service } from '../services/s3';
 import { ProgressBar } from '../utils/progress';
 import { Video } from '../types';
+import { CUTOVER_DATE } from '../config';
 
 interface ReconcileOptions {
   username: string;

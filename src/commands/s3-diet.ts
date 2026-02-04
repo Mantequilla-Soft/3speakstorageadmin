@@ -2,7 +2,7 @@ import { DatabaseService } from '../services/database';
 import { S3Service } from '../services/s3';
 import { IpfsService } from '../services/ipfs';
 import { logger } from '../utils/logger';
-import { config } from '../config';
+import { config, CUTOVER_DATE } from '../config';
 
 interface S3DietOptions {
   olderThanMonths?: string;

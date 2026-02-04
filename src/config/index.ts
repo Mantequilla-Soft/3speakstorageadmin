@@ -3,6 +3,10 @@ import { StorageConfig } from '../types';
 
 dotenv.config();
 
+// Cutover date for dual-daemon architecture
+// Content before this date is in read-only old repo and cannot be managed
+export const CUTOVER_DATE = new Date('2026-02-04T00:00:00Z');
+
 export const config: StorageConfig = {
   mongodb: {
     uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/3speak',

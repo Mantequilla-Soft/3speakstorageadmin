@@ -3,7 +3,7 @@ import { IpfsService } from '../services/ipfs';
 import { S3Service } from '../services/s3';
 import { CleanupCriteria, Video } from '../types';
 import { logger } from '../utils/logger';
-import { config } from '../config';
+import { config, CUTOVER_DATE } from '../config';
 import { ProgressBar, ProgressSpinner } from '../utils/progress';
 import { BatchProcessor } from '../utils/batch-processor';
 import { ProgressManager } from '../utils/progress-manager';
@@ -142,6 +142,11 @@ async function cleanupCommandInternal(options: CleanupOptions, progressManager?:
   
   try {
     await db.connect();
+    
+    // Show cutover date notice
+    uLog.info(`📅 Cutover Date: ${CUTOVER_DATE.toISOString().split('T')[0]}`);
+    uLog.info(`ℹ️  Only managing content uploaded after cutover (old repo is read-only)`);
+    uLog.info('');
     
     // Determine cleanup type and get videos
     let cleanupType: 'banned-users' | 'stuck-uploads' | 'admin-deleted' | 'low-engagement' = 'stuck-uploads';

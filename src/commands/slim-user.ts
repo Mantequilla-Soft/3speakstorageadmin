@@ -2,7 +2,7 @@ import { DatabaseService } from '../services/database';
 import { S3Service } from '../services/s3';
 import { Video } from '../types';
 import { logger } from '../utils/logger';
-import { config } from '../config';
+import { config, CUTOVER_DATE } from '../config';
 import { ProgressBar } from '../utils/progress';
 
 interface SlimUserOptions {

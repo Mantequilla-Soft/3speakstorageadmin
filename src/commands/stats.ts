@@ -1,5 +1,6 @@
 import { DatabaseService } from '../services/database';
 import { logger } from '../utils/logger';
+import { CUTOVER_DATE } from '../config';
 
 interface StatsOptions {
   detailed?: boolean;
@@ -12,6 +13,15 @@ export async function statsCommand(options: StatsOptions): Promise<void> {
     await db.connect();
     
     logger.info('=== 3Speak Storage Statistics ===');
+    logger.info(`📅 Cutover Date: ${CUTOVER_DATE.toISOString().split('T')[0]} (dual-daemon migration)`);
+    
+    // Get comprehensive stats with old/new separation
+    const compStats = await db.getComprehensiveStats();
+    
+    logger.info('\n--- Repository Split ---');
+    logger.info(`  🆕 New Repo (Manageable): ${compStats.newRepoVideos} videos, ${compStats.newRepoSizeGB} GB`);
+    logger.info(`  📦 Old Repo (Read-Only Archive): ${compStats.oldRepoVideos} videos, ${compStats.oldRepoSizeGB} GB`);
+    logger.info(`  📊 Total: ${compStats.totalVideos} videos, ${compStats.totalSizeGB} GB`);
     
     // Get basic video stats by status
     const stats = await db.getVideoStats();
@@ -40,9 +50,9 @@ export async function statsCommand(options: StatsOptions): Promise<void> {
     const bannedUsers = await db.getBannedUsers();
     logger.info(`  Banned Users: ${bannedUsers.length}`);
     
-    // Get stuck videos
+    // Get stuck videos (now only from new repo)
     const stuckVideos = await db.getStuckVideos();
-    logger.info(`  Stuck Videos (30+ days): ${stuckVideos.length}`);
+    logger.info(`  Stuck Videos (30+ days, new repo only): ${stuckVideos.length}`);
     
     // Get cleanup statistics
     const cleanupStats = await db.getCleanupStats();

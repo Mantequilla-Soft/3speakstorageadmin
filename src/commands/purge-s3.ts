@@ -1,7 +1,7 @@
 import { DatabaseService } from '../services/database';
 import { Video } from '../types';
 import { logger } from '../utils/logger';
-import { config } from '../config';
+import { config, CUTOVER_DATE } from '../config';
 import { ProgressBar } from '../utils/progress';
 
 interface PurgeS3Options {
