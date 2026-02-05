@@ -280,7 +280,7 @@ app.post('/api/ipfs-diet', requireAuth, async (req: Request, res: Response) => {
         logger.error('IPFS diet background operation error:', error);
         progressManager.errorOperation(operationId, error.message);
       }
-    }, 500);
+    }, 2000);
     
     res.json({ 
       success: true, 
@@ -320,7 +320,7 @@ app.post('/api/nuke-account', requireAuth, async (req: Request, res: Response): 
         logger.error('Nuke account background operation error:', error);
         progressManager.errorOperation(operationId, error.message);
       }
-    }, 500);
+    }, 2000);
     
     res.json({ 
       success: true, 
@@ -355,7 +355,7 @@ app.post('/api/purge-banned', requireAuth, async (req: Request, res: Response) =
         logger.error('Purge banned background operation error:', error);
         progressManager.errorOperation(operationId, error.message);
       }
-    }, 500); // 500ms delay to allow client connection
+    }, 2000); // 2s delay to allow client connection over network
     
     res.json({ 
       success: true, 
