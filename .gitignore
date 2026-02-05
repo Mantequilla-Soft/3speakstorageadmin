@@ -11,8 +11,8 @@ dist/
 .env.local
 .env.production
 
-# Internal deployment documentation
-DEPLOYMENT.md
+# Internal documentation (not for public repo)
+docs/internal/
 
 # Logs
 logs/
@@ -24,7 +24,7 @@ pids
 *.seed
 *.pid.lock
 
-# Coverage directory used by tools like istanbul
+# Coverage directory
 coverage/
 
 # OS generated files
@@ -46,4 +46,3 @@ Thumbs.db
 
 # Temporary files
 tmp/
-temp/

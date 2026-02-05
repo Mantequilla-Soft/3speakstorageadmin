@@ -54,6 +54,29 @@ cd 3speak-storage-admin
 npm install
 ```
 
+## Project Structure
+
+```
+3speakstorageadmin/
+├── src/                      # TypeScript source code
+│   ├── commands/            # CLI command implementations
+│   ├── services/            # Database, IPFS, S3 services
+│   ├── utils/               # Logging, batch processing
+│   ├── web/                 # Web dashboard (dark themed)
+│   └── index.ts             # CLI entry point
+├── scripts/                  # User-friendly bash scripts
+├── systemd/                  # System service files
+│   ├── *.service           # Systemd service definitions
+│   └── *.timer             # Systemd timer definitions
+├── tests/                    # Test scripts
+├── docs/                     # Public documentation
+│   └── internal/            # Internal docs (gitignored)
+├── debug/                    # Debug utilities
+├── package.json             # Node.js dependencies
+├── tsconfig.json            # TypeScript configuration
+└── README.md                # This file
+```
+
 ## Configuration
 
 1. Copy the example environment file:

@@ -12,14 +12,16 @@
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f7fa;
-            color: #333;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background-attachment: fixed;
+            color: #e0e0e0;
+            min-height: 100vh;
         }
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 1.5rem 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
         .header-content {
             max-width: 1400px;
@@ -56,13 +58,15 @@
             margin-bottom: 2.5rem;
         }
         .stat-card {
-            background: white;
+            background: rgba(30, 30, 50, 0.8);
+            backdrop-filter: blur(10px);
             padding: 1.5rem;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            border: 1px solid rgba(102, 126, 234, 0.2);
         }
         .stat-label {
-            color: #888;
+            color: #a0a0b0;
             font-size: 0.875rem;
             margin-bottom: 0.5rem;
             text-transform: uppercase;
@@ -79,18 +83,20 @@
             gap: 1.5rem;
         }
         .operation-card {
-            background: white;
+            background: rgba(30, 30, 50, 0.8);
+            backdrop-filter: blur(10px);
             padding: 1.75rem;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            border: 1px solid rgba(102, 126, 234, 0.2);
         }
         .operation-card h2 {
             font-size: 1.25rem;
             margin-bottom: 0.75rem;
-            color: #333;
+            color: #e0e0e0;
         }
         .operation-card p {
-            color: #666;
+            color: #b0b0c0;
             font-size: 0.9rem;
             margin-bottom: 1.25rem;
             line-height: 1.5;
@@ -101,7 +107,7 @@
         label {
             display: block;
             margin-bottom: 0.4rem;
-            color: #555;
+            color: #c0c0d0;
             font-size: 0.9rem;
             font-weight: 500;
         }
@@ -110,14 +116,17 @@
         select {
             width: 100%;
             padding: 0.625rem;
-            border: 2px solid #e0e0e0;
+            background: rgba(20, 20, 35, 0.6);
+            border: 2px solid rgba(102, 126, 234, 0.3);
             border-radius: 6px;
             font-size: 0.9rem;
+            color: #e0e0e0;
             transition: border-color 0.2s;
         }
         input:focus, select:focus {
             outline: none;
             border-color: #667eea;
+            background: rgba(20, 20, 35, 0.8);
         }
         .btn {
             padding: 0.75rem 1.5rem;
@@ -135,7 +144,7 @@
         }
         .btn-primary:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
         }
         .btn-danger {
             background: #e74c3c;
@@ -144,7 +153,7 @@
         .btn-danger:hover {
             background: #c0392b;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
         }
         .btn:disabled {
             opacity: 0.5;
@@ -154,7 +163,8 @@
         .results {
             margin-top: 1.5rem;
             padding: 1rem;
-            background: #f8f9fa;
+            background: rgba(20, 20, 35, 0.6);
+            border: 1px solid rgba(102, 126, 234, 0.2);
             border-radius: 6px;
             max-height: 300px;
             overflow-y: auto;
@@ -165,7 +175,7 @@
         }
         .results pre {
             font-size: 0.85rem;
-            color: #333;
+            color: #d0d0e0;
             white-space: pre-wrap;
             word-wrap: break-word;
         }
@@ -185,7 +195,7 @@
             border: 2px dashed #e74c3c;
             padding: 1.5rem;
             border-radius: 8px;
-            background: #fff5f5;
+            background: rgba(231, 76, 60, 0.1);
         }
         .danger-zone h3 {
             color: #e74c3c;
@@ -202,15 +212,28 @@
     </div>
 
     <div class="container">
+        <!-- Cutover Notice Banner -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem;">🆕 New Repo Operations Only</div>
+                    <div style="font-size: 0.9rem; opacity: 0.95;">All operations target content uploaded after Feb 4, 2026 (dual-daemon migration). Old repo is read-only archive.</div>
+                </div>
+                <button onclick="showRepoStats()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 0.6rem 1.2rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer; white-space: nowrap; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">📊 View Repo Stats</button>
+            </div>
+        </div>
+
         <!-- Stats Section -->
         <div class="stats-grid" id="stats-grid">
             <div class="stat-card">
-                <div class="stat-label">Total Videos</div>
-                <div class="stat-value" id="total-videos">Loading...</div>
+                <div class="stat-label">🆕 New Repo Videos</div>
+                <div class="stat-value" id="new-repo-videos" style="color: #28a745;">Loading...</div>
+                <div style="font-size: 0.75rem; color: #888; margin-top: 0.25rem;" id="new-repo-size">Loading...</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">IPFS Videos</div>
-                <div class="stat-value" id="ipfs-videos">Loading...</div>
+                <div class="stat-label">📦 Old Repo Videos</div>
+                <div class="stat-value" id="old-repo-videos" style="color: #6c757d;">Loading...</div>
+                <div style="font-size: 0.75rem; color: #888; margin-top: 0.25rem;" id="old-repo-size">Loading...</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Total Storage</div>
@@ -219,6 +242,19 @@
             <div class="stat-card">
                 <div class="stat-label">Cleaned Videos</div>
                 <div class="stat-value" id="cleaned-videos">Loading...</div>
+            </div>
+        </div>
+
+        <!-- Repo Stats Modal -->
+        <div id="repo-stats-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
+            <div style="background: rgba(30, 30, 50, 0.98); backdrop-filter: blur(10px); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 12px; padding: 2rem; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h2 style="margin: 0;">📊 Repository Statistics</h2>
+                    <button onclick="closeRepoStats()" style="background: #e74c3c; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">Close</button>
+                </div>
+                <div id="repo-stats-content" style="line-height: 1.8;">
+                    <div class="loading">Loading repository statistics...</div>
+                </div>
             </div>
         </div>
 
@@ -243,8 +279,8 @@
 
                 <!-- Progress Log -->
                 <div>
-                    <div style="font-weight: 600; margin-bottom: 0.5rem; color: #333;">Progress Log:</div>
-                    <div id="progress-log" style="height: 200px; overflow-y: auto; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 0.75rem; font-family: 'Courier New', monospace; font-size: 0.85rem; line-height: 1.4;">
+                    <div style="font-weight: 600; margin-bottom: 0.5rem; color: #e0e0e0;">Progress Log:</div>
+                    <div id="progress-log" style="height: 200px; overflow-y: auto; background: rgba(20, 20, 35, 0.6); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 6px; padding: 0.75rem; font-family: 'Courier New', monospace; font-size: 0.85rem; line-height: 1.4;">
                         <div class="text-muted">Waiting for operations...</div>
                     </div>
                 </div>
@@ -412,16 +448,182 @@
         async function loadStats() {
             try {
                 const response = await fetch('/api/stats');
+                
+                // Check if we got redirected to login (auth failure)
+                if (response.redirected || response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                
                 const data = await response.json();
                 
                 if (data.success) {
-                    document.getElementById('total-videos').textContent = data.data.totalVideos || '0';
-                    document.getElementById('ipfs-videos').textContent = data.data.ipfsVideos || '0';
+                    // Update new stats with old/new repo split
+                    document.getElementById('new-repo-videos').textContent = data.data.newRepoVideos || '0';
+                    document.getElementById('old-repo-videos').textContent = data.data.oldRepoVideos || '0';
+                    document.getElementById('new-repo-size').textContent = `${data.data.newRepoSizeGB || '0'} GB`;
+                    document.getElementById('old-repo-size').textContent = `${data.data.oldRepoSizeGB || '0'} GB`;
                     document.getElementById('total-storage').textContent = `${data.data.totalSizeGB || '0'} GB`;
                     document.getElementById('cleaned-videos').textContent = data.data.cleanedVideos || '0';
                 }
             } catch (error) {
                 console.error('Failed to load stats:', error);
+                // If we can't load stats, might be auth issue
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 2000);
+            }
+        }
+
+        function showRepoStats() {
+            const modal = document.getElementById('repo-stats-modal');
+            modal.style.display = 'flex';
+            loadDetailedRepoStats();
+        }
+
+        function closeRepoStats() {
+            const modal = document.getElementById('repo-stats-modal');
+            modal.style.display = 'none';
+        }
+
+        async function loadDetailedRepoStats() {
+            const content = document.getElementById('repo-stats-content');
+            content.innerHTML = '<div style="text-align: center; padding: 2rem;"><span class="loading"></span> Loading statistics...</div>';
+
+            try {
+                // Fetch both database stats and node stats in parallel
+                const [dbResponse, nodeResponse] = await Promise.all([
+                    fetch('/api/stats'),
+                    fetch('/api/node-stats')
+                ]);
+                
+                const dbData = await dbResponse.json();
+                const nodeData = nodeResponse.ok ? await nodeResponse.json() : null;
+                
+                if (dbData.success) {
+                    const stats = dbData.data;
+                    const cutoverDate = 'February 4, 2026';
+                    
+                    let html = `
+                        <div style="background: rgba(102, 126, 234, 0.15); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid rgba(102, 126, 234, 0.3);">
+                            <h3 style="margin-bottom: 1rem; color: #667eea;">📅 Cutover Date: ${cutoverDate}</h3>
+                            <p style="color: #b0b0c0; margin: 0;">Dual-daemon migration date. Operations only target new repo content.</p>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                            <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 1.5rem; border-radius: 8px;">
+                                <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem;">🆕 NEW REPO (Manageable)</div>
+                                <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem;">${stats.newRepoVideos || 0}</div>
+                                <div style="font-size: 0.9rem; opacity: 0.9;">videos</div>
+                                <div style="font-size: 1.2rem; font-weight: 600; margin-top: 0.75rem;">${stats.newRepoSizeGB || 0} GB</div>
+                            </div>
+                            
+                            <div style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); color: white; padding: 1.5rem; border-radius: 8px;">
+                                <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem;">📦 OLD REPO (Read-Only)</div>
+                                <div style="font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem;">${stats.oldRepoVideos || 0}</div>
+                                <div style="font-size: 0.9rem; opacity: 0.9;">videos</div>
+                                <div style="font-size: 1.2rem; font-weight: 600; margin-top: 0.75rem;">${stats.oldRepoSizeGB || 0} GB</div>
+                            </div>
+                        </div>
+
+                        <div style="background: rgba(102, 126, 234, 0.1); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid rgba(102, 126, 234, 0.2);">
+                            <h4 style="margin-bottom: 1rem; color: #e0e0e0;">📊 Combined Totals</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; text-align: center;">
+                                <div>
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: #667eea;">${stats.totalVideos || 0}</div>
+                                    <div style="font-size: 0.85rem; color: #b0b0c0;">Total Videos</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: #667eea;">${stats.totalSizeGB || 0} GB</div>
+                                    <div style="font-size: 0.85rem; color: #b0b0c0;">Total Storage</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: #667eea;">${stats.cleanedVideos || 0}</div>
+                                    <div style="font-size: 0.85rem; color: #b0b0c0;">Cleaned Up</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Add live node stats if available
+                    if (nodeData && nodeData.success) {
+                        const node = nodeData.data;
+                        const uptimeHours = Math.floor(node.system.uptime / 3600);
+                        const uptimeDays = Math.floor(uptimeHours / 24);
+                        const remainingHours = uptimeHours % 24;
+                        
+                        html += `
+                            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                                <h3 style="margin-bottom: 1rem; color: white;">🖥️ Live Supernode Stats</h3>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.9rem;">
+                                    <div>
+                                        <div style="opacity: 0.9; margin-bottom: 0.25rem;">Hostname</div>
+                                        <div style="font-weight: 600;">${node.system.hostname}</div>
+                                    </div>
+                                    <div>
+                                        <div style="opacity: 0.9; margin-bottom: 0.25rem;">Uptime</div>
+                                        <div style="font-weight: 600;">${uptimeDays}d ${remainingHours}h</div>
+                                    </div>
+                                    <div>
+                                        <div style="opacity: 0.9; margin-bottom: 0.25rem;">Memory</div>
+                                        <div style="font-weight: 600;">${node.system.memory.usedGB} / ${node.system.memory.totalGB} GB (${node.system.memory.percentUsed}%)</div>
+                                    </div>
+                                    <div>
+                                        <div style="opacity: 0.9; margin-bottom: 0.25rem;">Load Average</div>
+                                        <div style="font-weight: 600;">${node.system.loadAverage.map(l => l.toFixed(2)).join(' / ')}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="background: rgba(102, 126, 234, 0.1); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid rgba(102, 126, 234, 0.2);">
+                                <h4 style="margin-bottom: 1rem; color: #e0e0e0;">📦 IPFS Daemon Stats</h4>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                                    <div style="background: rgba(40, 167, 69, 0.1); padding: 1rem; border-radius: 6px; border-left: 4px solid #28a745; border: 1px solid rgba(40, 167, 69, 0.3);">
+                                        <div style="font-weight: 600; color: #28a745; margin-bottom: 0.5rem;">🆕 New Repo Daemon</div>
+                                        <div style="font-size: 0.85rem; color: #b0b0c0; line-height: 1.6;">
+                                            <div><strong>Pins:</strong> ${node.ipfs.newRepo.pinCount || 0}</div>
+                                            <div><strong>Peers:</strong> ${node.ipfs.newRepo.peerCount || 0}</div>
+                                            <div><strong>Version:</strong> ${node.ipfs.newRepo.version || 'N/A'}</div>
+                                            <div><strong>Status:</strong> ${node.ipfs.newRepo.daemonRunning ? '✅ Running' : '❌ Stopped'}</div>
+                                        </div>
+                                    </div>
+                                    <div style="background: rgba(108, 117, 125, 0.1); padding: 1rem; border-radius: 6px; border-left: 4px solid #6c757d; border: 1px solid rgba(108, 117, 125, 0.3);">
+                                        <div style="font-weight: 600; color: #9ca3af; margin-bottom: 0.5rem;">📦 Old Repo Daemon</div>
+                                        <div style="font-size: 0.85rem; color: #b0b0c0; line-height: 1.6;">
+                                            <div><strong>Pins:</strong> ${node.ipfs.oldRepo.pinCount?.toLocaleString() || 0}</div>
+                                            <div><strong>Peers:</strong> ${node.ipfs.oldRepo.peerCount || 0}</div>
+                                            <div><strong>Version:</strong> ${node.ipfs.oldRepo.version || 'N/A'}</div>
+                                            <div><strong>Status:</strong> ${node.ipfs.oldRepo.daemonRunning ? '✅ Running' : '❌ Stopped'}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="background: ${node.gc.lastRun ? 'rgba(40, 167, 69, 0.15)' : 'rgba(255, 193, 7, 0.15)'}; border-left: 4px solid ${node.gc.lastRun ? '#28a745' : '#ffc107'}; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; border: 1px solid ${node.gc.lastRun ? 'rgba(40, 167, 69, 0.3)' : 'rgba(255, 193, 7, 0.3)'}; color: #e0e0e0;">
+                                <strong>🗑️ Garbage Collection:</strong> ${node.gc.lastRun 
+                                    ? `Last run ${node.gc.lastRunHuman || 'recently'} (removed ${node.gc.blocksRemoved || 0} blocks in ${node.gc.durationHuman || 'N/A'})`
+                                    : node.gc.status || 'No GC runs recorded yet'}
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div style="background: rgba(255, 193, 7, 0.15); border-left: 4px solid #ffc107; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; border: 1px solid rgba(255, 193, 7, 0.3); color: #e0e0e0;">
+                                <strong>⚠️ Node Stats:</strong> Unable to fetch live supernode metrics (monitoring service unavailable)
+                            </div>
+                        `;
+                    }
+
+                    html += `
+                        <div style="background: rgba(255, 193, 7, 0.15); border-left: 4px solid #ffc107; padding: 1rem; border-radius: 4px; border: 1px solid rgba(255, 193, 7, 0.3); color: #e0e0e0;">
+                            <strong>ℹ️ Note:</strong> All cleanup and management operations only affect the new repo (${stats.newRepoVideos || 0} videos). 
+                            The old repo remains as a read-only archive and cannot be modified.
+                        </div>
+                    `;
+
+                    content.innerHTML = html;
+                }
+            } catch (error) {
+                content.innerHTML = `<div style="color: #e74c3c; text-align: center; padding: 2rem;">Failed to load statistics: ${error.message}</div>`;
             }
         }
 
@@ -508,6 +710,8 @@
         let eventSource = null;
         let autoScrollEnabled = true;
         const activeOperations = new Map();
+        let reconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 3;
 
         // Initialize progress monitoring
         function initProgressMonitoring() {
@@ -519,12 +723,28 @@
 
             eventSource.onopen = function() {
                 addLogMessage('info', 'Connected to progress stream');
+                reconnectAttempts = 0; // Reset on successful connection
             };
 
             eventSource.onerror = function(error) {
-                addLogMessage('error', 'Progress stream connection lost. Attempting to reconnect...');
-                // Auto-reconnect after 5 seconds
-                setTimeout(initProgressMonitoring, 5000);
+                // Check if we're being redirected (auth failure)
+                if (eventSource.readyState === EventSource.CLOSED) {
+                    reconnectAttempts++;
+                    
+                    if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+                        addLogMessage('error', 'Unable to connect to progress stream. Session may have expired. Please refresh the page.');
+                        eventSource.close();
+                        // Redirect to login after multiple failures
+                        setTimeout(() => {
+                            window.location.href = '/login';
+                        }, 2000);
+                        return;
+                    }
+                    
+                    addLogMessage('warn', `Progress stream disconnected. Reconnecting... (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+                    // Auto-reconnect after 3 seconds
+                    setTimeout(initProgressMonitoring, 3000);
+                }
             };
 
             eventSource.onmessage = function(event) {
@@ -660,7 +880,7 @@
                 };
 
                 return `
-                    <div style="background: #f8f9fa; border-left: 4px solid ${statusColor[progress.status]}; padding: 0.75rem; margin-bottom: 0.5rem; border-radius: 0 6px 6px 0;">
+                    <div style="background: rgba(30, 30, 50, 0.6); border-left: 4px solid ${statusColor[progress.status]}; padding: 0.75rem; margin-bottom: 0.5rem; border-radius: 0 6px 6px 0; border: 1px solid rgba(102, 126, 234, 0.2);">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div>
                                 <strong>${statusIcon[progress.status]} ${progress.operation}</strong>
@@ -680,7 +900,7 @@
                                 ` : ''}
                             </div>
                         </div>
-                        <div style="width: 100%; background: #e9ecef; height: 6px; border-radius: 3px; margin-top: 0.5rem;">
+                        <div style="width: 100%; background: rgba(20, 20, 35, 0.6); height: 6px; border-radius: 3px; margin-top: 0.5rem; border: 1px solid rgba(102, 126, 234, 0.2);">
                             <div style="width: ${percent}%; background: ${statusColor[progress.status]}; height: 100%; border-radius: 3px; transition: width 0.3s ease;"></div>
                         </div>
                     </div>

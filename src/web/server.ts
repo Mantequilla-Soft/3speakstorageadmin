@@ -126,6 +126,40 @@ app.get('/api/stats', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+app.get('/api/node-stats', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const nodeMonitorUrl = process.env.NODE_MONITOR_URL;
+    const nodeMonitorSecret = process.env.NODE_MONITOR_SECRET;
+    
+    if (!nodeMonitorUrl || !nodeMonitorSecret) {
+      res.status(500).json({ 
+        success: false, 
+        error: 'Node monitoring service not configured (missing NODE_MONITOR_URL or NODE_MONITOR_SECRET)' 
+      });
+      return;
+    }
+    
+    const response = await fetch(nodeMonitorUrl, {
+      headers: {
+        'Authorization': `Bearer ${nodeMonitorSecret}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Monitor service returned ${response.status}`);
+    }
+    
+    const data = await response.json();
+    res.json(data);
+  } catch (error: any) {
+    logger.error('Node monitor fetch error', error);
+    res.status(500).json({ 
+      success: false, 
+      error: `Unable to fetch node stats from supernode: ${error.message}`
+    });
+  }
+});
+
 app.post('/api/purge-failed', requireAuth, async (req: Request, res: Response) => {
   const { dryRun = true, batchSize = 100 } = req.body;
   const operationId = randomUUID();
