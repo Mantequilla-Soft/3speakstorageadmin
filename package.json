@@ -10,7 +10,7 @@
     "build": "tsc && npm run copy-views",
     "copy-views": "mkdir -p dist/web/views && cp -r src/web/views/* dist/web/views/ && mkdir -p dist/web/public",
     "dev": "ts-node src/index.ts",
-    "start": "node dist/index.js",
+    "start": "npm run web",
     "web": "node dist/web-server.js",
     "dev-web": "ts-node src/web-server.ts",
     "clean": "rimraf dist",

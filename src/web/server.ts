@@ -168,8 +168,8 @@ app.post('/api/purge-failed', requireAuth, async (req: Request, res: Response) =
     const operationName = `Purge failed videos${dryRun ? ' [PREVIEW]' : ''}`;
     progressManager.startOperation(operationId, operationName);
     
-    // Run operation in the background with proper error isolation
-    setImmediate(async () => {
+    // Small delay to ensure client connects before operation starts
+    setTimeout(async () => {
       try {
         await purgeFailedCommandWithProgress(operationId, {
           dryRun: dryRun !== false,
@@ -180,7 +180,7 @@ app.post('/api/purge-failed', requireAuth, async (req: Request, res: Response) =
         logger.error('Purge failed background operation error:', error);
         progressManager.errorOperation(operationId, error.message);
       }
-    });
+    }, 500);
     
     res.json({ 
       success: true, 
@@ -266,8 +266,8 @@ app.post('/api/ipfs-diet', requireAuth, async (req: Request, res: Response) => {
     const operationName = `IPFS Diet (${olderThanMonths}+ months, <${viewThreshold} views)${dryRun ? ' [PREVIEW]' : ''}`;
     progressManager.startOperation(operationId, operationName);
     
-    // Run operation in the background with proper error isolation
-    setImmediate(async () => {
+    // Small delay to ensure client connects before operation starts
+    setTimeout(async () => {
       try {
         await ipfsDietCommandWithProgress(operationId, {
           dryRun: dryRun !== false,
@@ -280,7 +280,7 @@ app.post('/api/ipfs-diet', requireAuth, async (req: Request, res: Response) => {
         logger.error('IPFS diet background operation error:', error);
         progressManager.errorOperation(operationId, error.message);
       }
-    });
+    }, 500);
     
     res.json({ 
       success: true, 
@@ -307,8 +307,8 @@ app.post('/api/nuke-account', requireAuth, async (req: Request, res: Response): 
     const operationName = `Nuke account: ${username}${dryRun ? ' [PREVIEW]' : ''}`;
     progressManager.startOperation(operationId, operationName);
     
-    // Run operation in the background with proper error isolation
-    setImmediate(async () => {
+    // Small delay to ensure client connects before operation starts
+    setTimeout(async () => {
       try {
         await nukeAccountCommandWithProgress(operationId, {
           username,
@@ -320,7 +320,7 @@ app.post('/api/nuke-account', requireAuth, async (req: Request, res: Response): 
         logger.error('Nuke account background operation error:', error);
         progressManager.errorOperation(operationId, error.message);
       }
-    });
+    }, 500);
     
     res.json({ 
       success: true, 
@@ -342,8 +342,8 @@ app.post('/api/purge-banned', requireAuth, async (req: Request, res: Response) =
     const operationName = `Purge banned user videos${dryRun ? ' [PREVIEW]' : ''} (${batchSize} videos)`;
     progressManager.startOperation(operationId, operationName);
     
-    // Run operation in the background with proper error isolation
-    setImmediate(async () => {
+    // Small delay to ensure client connects before operation starts
+    setTimeout(async () => {
       try {
         await purgeBannedCommandWithProgress(operationId, {
           dryRun: dryRun !== false,
@@ -355,7 +355,7 @@ app.post('/api/purge-banned', requireAuth, async (req: Request, res: Response) =
         logger.error('Purge banned background operation error:', error);
         progressManager.errorOperation(operationId, error.message);
       }
-    });
+    }, 500); // 500ms delay to allow client connection
     
     res.json({ 
       success: true, 
